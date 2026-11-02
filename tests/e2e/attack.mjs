@@ -15,7 +15,7 @@ const r = await p.evaluate(() => {
   for (let i = 0; i < 140; i++) g.update();
   const w = g.world;
   w.waves.forEach((x) => { x.spawned = true; x.cleared = true; x.queue = []; });
-  w.player.god = true; // não morre, mas registra os golpes
+  // sem invencibilidade (para os golpes contarem); a energia é reposta durante o teste
   let hits = 0;
   const orig = w.player.takeDamage.bind(w.player);
   w.player.takeDamage = (...a) => { const ok = orig(...a); if (ok) hits++; return ok; };
@@ -23,7 +23,7 @@ const r = await p.evaluate(() => {
   const perWindow = [];
   for (let s = 0; s < 6; s++) {
     const before = hits;
-    for (let i = 0; i < 300; i++) g.update(); // 5 s
+    for (let i = 0; i < 300; i++) { if (i % 30 === 0) w.player.hp = 100; g.update(); } // 5 s
     perWindow.push(hits - before);
   }
   return { perWindow, holders: w.tokens.holders.size, max: w.tokens.max, attackers: w.enemies.map((e) => [e.kind, e.state, e.hasToken]) };
