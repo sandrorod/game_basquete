@@ -15,6 +15,9 @@ type ThrowKind = 'quick' | 'strong';
 const WALK = 2.1;
 const RUN = 3.7;
 const DEPTH = 1.55;
+/** Custo do turbo na barra de poder (0..1) */
+const TURBO_START = 0.05;
+const TURBO_DRAIN = 0.0025;
 
 export class Player extends Actor {
   ball: 'hand' | 'out' | 'stolen' = 'hand';
@@ -28,6 +31,7 @@ export class Player extends Actor {
   comboT = 0;
   bestCombo = 0;
   running = false;
+  noPowerT = 0;
   tookDamage = false;
   lastSafe = { x: 0, y: 0 };
   hitThisShove = new Set<number>();
@@ -51,6 +55,7 @@ export class Player extends Actor {
   update(w: World, input: Input) {
     this.tickTimers();
     if (this.throwCd > 0) this.throwCd--;
+    if (this.noPowerT > 0) this.noPowerT--;
     if (this.bufferedThrow > 0) this.bufferedThrow--;
     if (this.comboT > 0 && --this.comboT === 0) this.combo = 0;
     if (this.ball === 'stolen' && this.stolenT > 0 && --this.stolenT === 0) {
@@ -64,7 +69,21 @@ export class Player extends Actor {
       case 'idle':
       case 'walk':
       case 'run': {
-        this.running = input.running() && ax.x !== 0;
+        // Turbo (correr) gasta a barra de poder: 5% para começar e ~15% por segundo correndo
+        const wantsRun = input.running() && ax.x !== 0;
+        if (wantsRun && !this.running) {
+          if (this.sp >= TURBO_START) {
+            this.sp -= TURBO_START;
+            this.running = true;
+          } else if (this.noPowerT <= 0) {
+            this.noPowerT = 60;
+            w.fx.popup(this.x, this.y - 88, 'NO POWER', '#9fdcff', 7);
+          }
+        } else if (!wantsRun) this.running = false;
+        if (this.running) {
+          this.sp = Math.max(0, this.sp - TURBO_DRAIN);
+          if (this.sp <= 0) this.running = false;
+        }
         const sp = this.running ? RUN : WALK;
         this.vx += (ax.x * sp - this.vx) * 0.32;
         this.vy += (ax.y * (this.running ? DEPTH * 1.15 : DEPTH) - this.vy) * 0.38;
@@ -281,6 +300,8 @@ export class Player extends Actor {
   /** Recebe golpe. knock = cai no chão. */
   takeDamage(w: World, dmg: number, knock: boolean, dirX: number, force = false) {
     if (!force && (this.invuln > 0 || ['ko', 'respawn', 'falling', 'down', 'getup'].includes(this.state))) return false;
+    // modo de teste (robô): ignora o golpe por completo (sem dano nem atordoamento)
+    if (this.god && !force) return false;
     if (this.god) dmg = 0;
     this.hp = Math.max(0, this.hp - dmg);
     this.tookDamage = true;

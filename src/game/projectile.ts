@@ -22,6 +22,8 @@ export class Projectile {
   range: number;
   startX: number;
   hits = new Set<number>();
+  /** Inimigos atingidos na volta (cada um só uma vez) */
+  returnHits = new Set<number>();
   remove = false;
   spin = 0;
   glow?: string;

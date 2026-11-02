@@ -22,7 +22,7 @@ export interface StageDef {
 }
 
 export const STAGES: StageDef[] = [
-  { n: 1, name: 'THE OLD STREETS', theme: 'streets', length: 2900, gang: 'STREET THUG', palette: { a: '#c0392b', b: '#34495e', c: '#f1c40f' },
+  { n: 1, name: 'THE OLD STREETS', theme: 'streets', length: 2900, gang: 'STREET THUG', palette: { a: '#3d6b35', b: '#34495e', c: '#f1c40f' },
     enemies: [{ kind: 'thug', w: 6 }, { kind: 'runner', w: 3 }], props: ['trash', 'crate', 'hydrant', 'dumpster'], hazards: [], waves: 4, boss: 0 },
   { n: 2, name: 'THE SUBWAY', theme: 'subway', length: 3100, gang: 'SUBWAY GANG', palette: { a: '#16a085', b: '#2c3e50', c: '#ecf0f1' },
     enemies: [{ kind: 'thug', w: 4, name: 'SUBWAY GANG' }, { kind: 'shooter', w: 3 }, { kind: 'runner', w: 3 }], props: ['barrier', 'trash', 'bench', 'crate'], hazards: ['train'], waves: 5, boss: 1 },
@@ -32,9 +32,9 @@ export const STAGES: StageDef[] = [
     enemies: [{ kind: 'thug', w: 4, name: 'BEACH FIGHTER' }, { kind: 'runner', w: 3 }, { kind: 'biker', w: 2 }], props: ['umbrella', 'chair', 'surfboard', 'crate'], hazards: [], waves: 5, boss: 3 },
   { n: 5, name: 'THE NIGHT CITY', theme: 'night', length: 3400, gang: 'NIGHT GANG', palette: { a: '#8e44ad', b: '#2d3436', c: '#00cec9' },
     enemies: [{ kind: 'thug', w: 3, name: 'NIGHT GANG' }, { kind: 'shooter', w: 3 }, { kind: 'thief', w: 3 }], props: ['car', 'dumpster', 'trash', 'cone'], hazards: ['traffic'], waves: 6, boss: 4 },
-  { n: 6, name: 'THE BASKETBALL COURT', theme: 'court', length: 3400, gang: 'COURT RIVALS', palette: { a: '#e17055', b: '#2d3436', c: '#ffffff' },
+  { n: 6, name: 'THE BASKETBALL COURT', theme: 'court', length: 3400, gang: 'COURT RIVALS', palette: { a: '#6c5ce7', b: '#2d3436', c: '#ffffff' },
     enemies: [{ kind: 'baller', w: 4 }, { kind: 'defender', w: 3 }, { kind: 'heavy', w: 2 }], props: ['bench', 'ballrack', 'crate', 'cone'], hazards: [], waves: 6, boss: 5 },
-  { n: 7, name: 'THE CHINATOWN', theme: 'chinatown', length: 3500, gang: 'CHINATOWN FIGHTERS', palette: { a: '#d63031', b: '#2d3436', c: '#fdcb6e' },
+  { n: 7, name: 'THE CHINATOWN', theme: 'chinatown', length: 3500, gang: 'CHINATOWN FIGHTERS', palette: { a: '#1e6f5c', b: '#2d3436', c: '#fdcb6e' },
     enemies: [{ kind: 'thug', w: 4, name: 'CHINATOWN FIGHTER' }, { kind: 'runner', w: 3 }, { kind: 'shooter', w: 3 }], props: ['table', 'stall', 'pot', 'crate'], hazards: [], waves: 6, boss: 6 },
   { n: 8, name: 'THE UNDERGROUND', theme: 'underground', length: 3600, gang: 'UNDERGROUND GANG', palette: { a: '#636e72', b: '#2d3436', c: '#fab1a0' },
     enemies: [{ kind: 'thug', w: 3, name: 'UNDERGROUND GANG' }, { kind: 'biker', w: 3 }, { kind: 'heavy', w: 3 }], props: ['car', 'barrier', 'barrel', 'cone'], hazards: ['traffic'], waves: 7, boss: 7 },

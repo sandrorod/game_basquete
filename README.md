@@ -18,7 +18,7 @@ npm run preview    # serve o build
 | Ação | Computador | Celular |
 |---|---|---|
 | Andar (4 direções, com profundidade) | W A S D ou setas | analógico à esquerda |
-| Correr | Shift, ou toque duplo na direção | RUN |
+| Correr (turbo: gasta a barra de poder) | Shift, ou toque duplo na direção | RUN |
 | Arremesso rápido (sem bola: empurrão) | Espaço | THROW |
 | Arremesso forte (derruba, quebra defesa) | J | STRONG |
 | Arremesso carregado (segure e solte) / SUPER SHOT com SP cheio | K | SP |
@@ -49,10 +49,10 @@ npm run preview    # serve o build
   Eles cercam o jogador sem se amontoar, e só alguns atacam de cada vez.
 - **10 chefes** com estratégias próprias. Os golpes vêm de um conjunto (soco pesado, combo, investida, rajada de projéteis, salto com onda de choque, teletransporte, convocar capangas), e cada chefe tem passivas diferentes: esquiva, armadura que quebra e fúria abaixo de 35% de vida. THE KING luta em 3 fases.
 - **Combate:**
-  - a bola gira no ar e volta para a mão;
+  - a bola gira no ar e volta para a mão, causando dano também em quem estiver no caminho de volta;
   - pausa de impacto e tremor de tela;
   - combos;
-  - barra SP para o SUPER SHOT (5 bolas);
+  - barra de poder (SP), que enche com os acertos: alimenta o turbo (custa 5% para começar a correr e cerca de 15% por segundo) e, cheia, o SUPER SHOT (5 bolas);
   - a sua bola rebate projéteis inimigos.
 - **Obstáculos:** os quebráveis soltam comida, estrelas e 1UP. Os sólidos bloqueiam a passagem, mas nunca fecham a rua.
 - **Pontuação e bônus:**

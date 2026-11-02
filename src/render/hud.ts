@@ -49,6 +49,7 @@ export interface HudData {
   boss?: { name: string; hp: number; trail: number; enraged: boolean };
   ballReady: boolean;
   charge: number;
+  turbo: boolean;
   go: boolean;
   t: number;
 }
@@ -61,7 +62,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, d: HudData) {
   ctx.save();
   ctx.beginPath();
   ctx.rect(8, 8, 32, 38);
-  ctx.fillStyle = '#1e63d6';
+  ctx.fillStyle = '#8a1520';
   ctx.fill();
   ctx.clip();
   drawFighter(ctx, 22, 116, HERO, poseFor('idle', d.t, { expr: d.hp < 0.25 ? 'hurt' : 'normal' }), { facing: 1, scale: 1.45 });
@@ -73,7 +74,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, d: HudData) {
   bar(ctx, 46, 20, 150, 9, d.hp, d.hpTrail, d.hp < 0.25 && Math.floor(d.t / 8) % 2 ? ['#ff6b6b', '#c92a2a'] : ['#7cff6b', '#1f9d3a']);
   // barra especial (SP)
   bar(ctx, 46, 33, 100, 5, d.sp, d.sp, d.sp >= 1 && Math.floor(d.t / 6) % 2 ? ['#ffffff', '#38f6ff'] : ['#38f6ff', '#1e63d6']);
-  text(ctx, d.sp >= 1 ? 'SUPER!' : 'SP', 150, 39, 5, d.sp >= 1 ? '#38f6ff' : '#9fdcff');
+  text(ctx, d.turbo ? 'TURBO' : d.sp >= 1 ? 'SUPER!' : 'POWER', 150, 39, 5, d.turbo ? '#ffd23f' : d.sp >= 1 ? '#38f6ff' : '#9fdcff');
   // vidas
   for (let i = 0; i < Math.min(d.lives, 6); i++) {
     ctx.fillStyle = '#f07818';

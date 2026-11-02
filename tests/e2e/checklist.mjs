@@ -71,6 +71,7 @@ try {
   check(4, 'O protagonista anda nas quatro direções', r.x > a.x + 10 && l.x < r.x - 5 && u.y < l.y - 5 && d.y > u.y + 5 && ar.x > d.x, `→ +${Math.round(r.x - a.x)} ← −${Math.round(r.x - l.x)} ↑ −${Math.round(l.y - u.y)} ↓ +${Math.round(d.y - u.y)} (setas também)`);
 
   // ── Câmera acompanha ────────────────────────────────────────────
+  await page.evaluate(() => { window.__game.world.player.sp = 1; });
   const c0 = (await pos()).cam;
   await page.keyboard.down('KeyD');
   await page.keyboard.down('ShiftLeft');
@@ -206,6 +207,41 @@ try {
   check(17, 'A progressão entre as fases funciona', cleared === 9 && run.finalState === 'victory', `${cleared} fases concluídas em sequência + chefe final (${run.report.map((x) => `F${x.stage} ${Math.round(x.frames / 3600 * 10) / 10}min`).join(', ')})`);
   check(18, 'O jogo possui tela de vitória e GAME OVER', goScreen && /KING/.test(victoryText), `GAME OVER: ${goScreen ? 'ok' : 'falhou'} · vitória: "${victoryText.replace(/\s+/g, ' ').trim()}"`);
   await page.screenshot({ path: path.join(import.meta.dirname, 'victory.png') });
+  await page.close();
+
+  // ── Mecânicas extras pedidas: bola volta causando dano; turbo gasta poder ──
+  page = await open();
+  await play(page, 0);
+  const extra = await page.evaluate(() => {
+    const g = window.__game, w = g.world, p = w.player;
+    w.waves.forEach((x) => { x.spawned = true; x.cleared = true; x.queue = []; });
+    // bola volta: arremessa, e quando ela começa a voltar um inimigo entra no caminho de volta
+    p.facing = 1;
+    g.input.press('throw'); g.update(); g.input.release('throw');
+    let pr = null;
+    for (let i = 0; i < 120 && !(pr && pr.returning); i++) { g.update(); pr = w.projectiles.find((q) => q.mainBall); }
+    const mid = w.spawnEnemy('thug', 1);
+    mid.x = (pr.x + p.x) / 2; mid.y = p.y; mid.cooldown = 99999;
+    const hpBefore = mid.hp;
+    for (let i = 0; i < 60; i++) { mid.x = Math.max(mid.x, p.x + 20); g.update(); }
+    const returnDmg = hpBefore - mid.hp;
+    mid.remove = true;
+    for (let i = 0; i < 5; i++) g.update();
+    // turbo: sem poder não corre; com poder corre e gasta
+    p.sp = 0;
+    g.input.press('right'); g.input.press('run');
+    for (let i = 0; i < 30; i++) g.update();
+    const runWithout = p.state === 'run';
+    g.input.release('run'); g.update();
+    p.sp = 0.6;
+    g.input.press('run');
+    for (let i = 0; i < 60; i++) g.update();
+    const runWith = p.state === 'run', spAfter = p.sp;
+    g.input.release('run'); g.input.release('right');
+    return { returnDmg, runWithout, runWith, spAfter };
+  });
+  check(21, 'A bola também causa dano quando volta', extra.returnDmg > 0, `inimigo no caminho de volta perdeu ${extra.returnDmg} de energia`);
+  check(22, 'O turbo usa a barra de poder', !extra.runWithout && extra.runWith && extra.spAfter < 0.55, `sem poder não corre; com 60% correu 1 s e ficou com ${Math.round(extra.spAfter * 100)}%`);
   await page.close();
 
   // ── Celular: controles de toque ─────────────────────────────────

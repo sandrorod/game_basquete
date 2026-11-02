@@ -2,8 +2,9 @@ import { BUILDS, type Look } from '../render/fighter';
 
 /** STREET PLAYER — o protagonista */
 export const HERO: Look = {
-  skin: '#b5754a', hair: '#1b1210', hairStyle: 'cornrows', top: '#1e63d6', trim: '#ffd23f', topStyle: 'tank', number: '23',
-  bottom: '#1a4fae', bottomStyle: 'shorts', shoe: '#e8202f', sock: '#f2f2f2', build: BUILDS.athletic, headband: '#ffffff', wrist: '#ffd23f',
+  skin: '#8d5a36', hair: '#1a110c', hairStyle: 'dreads', top: '#d81f2a', trim: '#ffffff', topStyle: 'tank', number: '23',
+  bottom: '#d81f2a', bottomStyle: 'shorts', shoe: '#f4f4f4', shoeAccent: '#d81f2a', sock: '#ffffff',
+  build: { sw: 11.2, hw: 7.2, armR: 3.8, legR: 4, belly: 0, tall: 1.05 }, headband: '#e11d2a', wrist: '#1a1a1a',
 };
 
 const SKINS = ['#f1c7a0', '#d9a074', '#b5754a', '#8a5432', '#5e3a24', '#e9b98f'];

@@ -352,6 +352,16 @@ export class World {
         pr.x += (dx / d) * sp;
         pr.y += (dy / d) * sp;
         pr.z += (dz / d) * sp;
+        // na volta a bola também acerta quem estiver no caminho (uma vez por inimigo, sem repetir quem já levou na ida)
+        if (pr.dmg > 0) {
+          for (const e of this.enemies) {
+            if (e.dead || pr.hits.has(e.id) || pr.returnHits.has(e.id) || e.invuln > 0) continue;
+            if (Math.abs(e.y - pr.y) > pr.laneTol + 4 || Math.abs(e.x - pr.x) > e.halfW + pr.radius) continue;
+            if (pr.z < e.z - 4 || pr.z > e.z + e.height + 6) continue;
+            pr.returnHits.add(e.id);
+            this.hitEnemy(e, Math.max(6, Math.round(pr.dmg * 0.6)), 'quick', sign(dx || 1), pr.x, pr.y, pr.z);
+          }
+        }
         if (d < 16 || pr.life > 200) {
           pr.remove = true;
           if (p.ball === 'out') p.catchBall();
@@ -751,7 +761,7 @@ export class World {
     const boss = this.boss && this.bossPhase !== 'none' ? this.boss : null;
     drawHud(ctx, {
       hp: p.hp / p.maxHp, hpTrail: p.trail, sp: p.sp, score: this.score, lives: this.lives, stage: this.stageN, stageName: this.stage.name,
-      combo: p.combo, comboT: p.comboT, ballReady: p.ball === 'hand', charge: p.state === 'charge' ? p.charge : 0, go: this.goT > 0 && this.bossPhase === 'none', t,
+      combo: p.combo, comboT: p.comboT, ballReady: p.ball === 'hand', charge: p.state === 'charge' ? p.charge : 0, turbo: p.running && p.state === 'run', go: this.goT > 0 && this.bossPhase === 'none', t,
       boss: boss ? { name: boss.name, hp: boss.hp / boss.maxHp, trail: boss.trail, enraged: boss.enraged } : undefined,
     });
 

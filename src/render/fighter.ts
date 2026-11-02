@@ -6,7 +6,7 @@ import { shade } from '../core/math';
  */
 
 export type Expr = 'normal' | 'angry' | 'hurt' | 'happy' | 'ko' | 'focus';
-export type HairStyle = 'short' | 'afro' | 'mohawk' | 'bald' | 'buzz' | 'long' | 'cornrows' | 'topknot' | 'spiky';
+export type HairStyle = 'short' | 'afro' | 'mohawk' | 'bald' | 'buzz' | 'long' | 'cornrows' | 'topknot' | 'spiky' | 'dreads';
 export type TopStyle = 'tank' | 'tee' | 'jacket' | 'vest' | 'bare' | 'gi';
 
 export interface Look {
@@ -20,6 +20,8 @@ export interface Look {
   bottom: string;
   bottomStyle: 'shorts' | 'pants';
   shoe: string;
+  /** Detalhe colorido do tênis (cano alto) */
+  shoeAccent?: string;
   sock: string;
   build: { sw: number; hw: number; armR: number; legR: number; belly: number; tall: number };
   cap?: string;
@@ -204,8 +206,23 @@ export function drawFighter(ctx: CanvasRenderingContext2D, x: number, y: number,
     ctx.stroke();
     ctx.fillStyle = C('#f4f4f4');
     ctx.fillRect(-3.6, 0, 11.4, 1.6);
-    ctx.fillStyle = C(shade(look.shoe, 0.35));
-    ctx.fillRect(0, -2.2, 3, 1);
+    if (look.shoeAccent) {
+      // cano alto + faixa colorida
+      ctx.fillStyle = C(shade(look.shoe, dk));
+      ctx.fillRect(-3.4, -5.2, 6, 3);
+      ctx.strokeRect(-3.4, -5.2, 6, 3);
+      ctx.fillStyle = C(shade(look.shoeAccent, dk));
+      ctx.beginPath();
+      ctx.moveTo(-2.6, -1.2);
+      ctx.quadraticCurveTo(2.5, -3.2, 6.6, -1.4);
+      ctx.lineTo(6, -0.4);
+      ctx.quadraticCurveTo(2.5, -1.8, -2.6, -0.2);
+      ctx.fill();
+      ctx.fillRect(-3.4, -5.2, 6, 1.2);
+    } else {
+      ctx.fillStyle = C(shade(look.shoe, 0.35));
+      ctx.fillRect(0, -2.2, 3, 1);
+    }
     ctx.restore();
   };
 
@@ -381,6 +398,7 @@ function drawHead(ctx: CanvasRenderingContext2D, look: Look, expr: Expr, fl: boo
   const r = HEAD_R;
   // cabelo atrás (afro/longo)
   if (look.hairStyle === 'afro') circle(ctx, -1.5, -2.5, r + 3.6, C(look.hair));
+  if (look.hairStyle === 'dreads') drawDreads(ctx, r, C(look.hair), fl);
   if (look.hairStyle === 'long') {
     ctx.fillStyle = C(look.hair);
     ctx.beginPath();
@@ -472,6 +490,13 @@ function drawHead(ctx: CanvasRenderingContext2D, look: Look, expr: Expr, fl: boo
     case 'long':
       ctx.beginPath();
       ctx.ellipse(-0.5, -2.6, r, r * 0.7, -0.1, Math.PI * 0.9, Math.PI * 2.05);
+      ctx.fill();
+      ctx.stroke();
+      break;
+    case 'dreads':
+      // base do cabelo sobre a testa (as mechas já foram desenhadas atrás)
+      ctx.beginPath();
+      ctx.ellipse(-0.6, -2.8, r * 1.02, r * 0.7, -0.1, Math.PI * 0.92, Math.PI * 2.08);
       ctx.fill();
       ctx.stroke();
       break;
@@ -654,4 +679,47 @@ function drawFace(ctx: CanvasRenderingContext2D, look: Look, expr: Expr) {
     ctx.lineTo(6.6, 4.4);
     ctx.stroke();
   }
+}
+
+/** Dreads espetados e torcidos, saindo do alto da cabeça para cima e para trás */
+function drawDreads(ctx: CanvasRenderingContext2D, r: number, color: string, fl: boolean) {
+  const locks: [number, number, number][] = [
+    // [ângulo, comprimento, curvatura]
+    [-2.55, 11, 0.5], [-2.3, 12.5, -0.4], [-2.05, 13, 0.4], [-1.8, 12, -0.3], [-1.55, 12.5, 0.35],
+    [-1.3, 11, -0.3], [-1.05, 9.5, 0.3], [-2.8, 9.5, -0.3], [-3.05, 8, 0.3], [-0.85, 7.5, -0.2],
+  ];
+  ctx.save();
+  ctx.lineCap = 'round';
+  for (const pass of [0, 1]) {
+    for (const [a, len, curve] of locks) {
+      const bx = Math.cos(a) * r * 0.55, by = -2 + Math.sin(a) * r * 0.55;
+      const ex = bx + Math.cos(a) * len, ey = by + Math.sin(a) * len;
+      const mx = (bx + ex) / 2 + Math.cos(a + Math.PI / 2) * curve * 4;
+      const my = (by + ey) / 2 + Math.sin(a + Math.PI / 2) * curve * 4;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.quadraticCurveTo(mx, my, ex, ey);
+      if (pass === 0) {
+        ctx.strokeStyle = OUTLINE;
+        ctx.lineWidth = 4.4;
+      } else {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.8;
+      }
+      ctx.stroke();
+      if (pass === 1 && !fl) {
+        // torção das mechas
+        ctx.strokeStyle = shade(color, 0.35);
+        ctx.lineWidth = 0.7;
+        for (let k = 0.3; k < 1; k += 0.25) {
+          const px = bx + (ex - bx) * k, py = by + (ey - by) * k;
+          ctx.beginPath();
+          ctx.moveTo(px - Math.sin(a) * 1.2, py + Math.cos(a) * 1.2);
+          ctx.lineTo(px + Math.sin(a) * 1.2 + Math.cos(a) * 0.8, py - Math.cos(a) * 1.2 + Math.sin(a) * 0.8);
+          ctx.stroke();
+        }
+      }
+    }
+  }
+  ctx.restore();
 }
