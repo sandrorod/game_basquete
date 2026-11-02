@@ -1,0 +1,66 @@
+:root {
+  --yellow: #ffd23f;
+  --cyan: #38f6ff;
+  --pink: #ff3fd2;
+  --red: #ff2a4a;
+  --ink: #0b0b16;
+  --font: 'Press Start 2P', monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #000; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
+#app { position: fixed; inset: 0; }
+#game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; image-rendering: auto; }
+#ui { position: absolute; inset: 0; pointer-events: none; display: flex; align-items: center; justify-content: center; font-family: var(--font); color: #fff; }
+#ui > * { pointer-events: auto; }
+
+.screen { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; padding: 16px; max-height: 100%; overflow-y: auto; }
+.panel { background: rgba(8, 8, 22, 0.88); border: 3px solid var(--yellow); box-shadow: 0 0 0 3px #000, 0 0 30px rgba(255, 210, 63, 0.35); padding: 22px 26px; border-radius: 6px; max-width: min(92vw, 640px); }
+
+.logo { font-family: 'Bungee', 'Arial Black', sans-serif; line-height: 0.92; letter-spacing: 1px; margin: 0; filter: drop-shadow(0 6px 0 #000); }
+.logo .l1 { display: block; font-size: clamp(22px, 5.4vw, 52px); color: #fff; -webkit-text-stroke: 2px #000; }
+.logo .l2 { display: block; font-size: clamp(34px, 9vw, 92px); background: linear-gradient(180deg, #ffe66d 0%, #ff8a1f 55%, #e8202f 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-stroke: 3px #000; }
+.logo .l3 { display: block; font-size: clamp(26px, 7vw, 70px); color: var(--cyan); -webkit-text-stroke: 3px #000; transform: skewX(-8deg); }
+.tag { font-size: clamp(7px, 1.4vw, 10px); color: #cfe9ff; letter-spacing: 1px; }
+
+.menu { display: flex; flex-direction: column; gap: 10px; min-width: min(80vw, 300px); }
+.btn { font-family: var(--font); font-size: clamp(10px, 1.8vw, 14px); color: #000; background: var(--yellow); border: 3px solid #000; box-shadow: 0 5px 0 #8a6a00, 0 5px 0 3px #000; padding: 12px 18px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: transform 0.05s; border-radius: 4px; }
+.btn.alt { background: #e8e8f0; box-shadow: 0 5px 0 #77778a, 0 5px 0 3px #000; }
+.btn:hover, .btn:focus-visible { background: #fff27a; outline: none; transform: translateY(-1px); }
+.btn.alt:hover, .btn.alt:focus-visible { background: #ffffff; }
+.btn:focus-visible::before { content: '▶ '; }
+.btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #8a6a00, 0 1px 0 3px #000; }
+.blink { animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+h2 { font-size: clamp(14px, 3vw, 22px); color: var(--yellow); margin: 0 0 6px; text-shadow: 3px 3px 0 #000; }
+h3 { font-size: 10px; color: var(--cyan); margin: 14px 0 6px; }
+.small { font-size: clamp(7px, 1.3vw, 9px); line-height: 1.9; color: #e6ecff; }
+.keys { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; text-align: left; font-size: clamp(7px, 1.3vw, 9px); line-height: 1.6; }
+.keys kbd { font-family: var(--font); background: #222; border: 2px solid #777; border-bottom-width: 4px; padding: 3px 6px; color: var(--yellow); border-radius: 3px; white-space: nowrap; }
+.opt { display: flex; justify-content: space-between; align-items: center; gap: 18px; font-size: clamp(8px, 1.4vw, 11px); }
+.opt .btn { padding: 8px 12px; min-width: 110px; }
+.score { font-size: clamp(12px, 2.4vw, 18px); color: #fff; }
+.big { font-size: clamp(22px, 6vw, 48px); color: var(--red); text-shadow: 4px 4px 0 #000; margin: 0; }
+.win { font-family: 'Bungee', 'Arial Black'; font-size: clamp(24px, 6vw, 54px); background: linear-gradient(180deg, #fff6a8, #ffb300); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-stroke: 2px #000; margin: 0; }
+.hero-canvas { width: min(34vw, 180px); height: auto; }
+.title-wrap { display: flex; align-items: center; gap: clamp(8px, 3vw, 36px); flex-wrap: wrap; justify-content: center; }
+
+/* Controles de toque */
+#touch { position: absolute; inset: 0; pointer-events: none; display: none; }
+#touch.on { display: block; }
+.stick { position: absolute; left: max(18px, env(safe-area-inset-left)); bottom: 18px; width: 150px; height: 150px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 3px solid rgba(255,255,255,0.35); pointer-events: auto; touch-action: none; }
+.knob { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, #b8c4ff 60%, #6d7cff); box-shadow: 0 3px 0 #000; }
+.tbtn { position: absolute; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font); font-size: 10px; color: #000; border: 3px solid #000; box-shadow: 0 4px 0 #000; pointer-events: auto; touch-action: none; user-select: none; }
+.tbtn.down { transform: translateY(3px); box-shadow: 0 1px 0 #000; filter: brightness(1.2); }
+.tb-throw { right: max(24px, env(safe-area-inset-right)); bottom: 26px; width: 92px; height: 92px; background: #ff8a1f; font-size: 12px; }
+.tb-strong { right: max(126px, calc(env(safe-area-inset-right) + 102px)); bottom: 22px; width: 70px; height: 70px; background: #ff4d6d; }
+.tb-special { right: max(40px, env(safe-area-inset-right)); bottom: 132px; width: 70px; height: 70px; background: var(--cyan); }
+.tb-run { right: max(128px, calc(env(safe-area-inset-right) + 104px)); bottom: 106px; width: 58px; height: 58px; background: #b8f26b; font-size: 8px; }
+.tb-pause { right: 12px; top: 12px; width: 44px; height: 44px; background: #fff; font-size: 12px; border-radius: 10px; }
+
+#rotate { position: absolute; left: 0; right: 0; top: 0; display: none; justify-content: center; text-align: center; padding: 8px; background: rgba(0,0,0,0.75); color: var(--yellow); font-family: var(--font); font-size: 9px; line-height: 1.8; z-index: 5; pointer-events: none; }
+@media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
+
+/* Vitória: painel à esquerda, herói comemorando à direita (no canvas) */
+#ui:has(.victory) { justify-content: flex-start; }
+.screen.victory { margin-left: 3vw; max-width: 58vw; }
+@media (max-width: 700px) { .screen.victory { max-width: 64vw; margin-left: 1vw; } }
