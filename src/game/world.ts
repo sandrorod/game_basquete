@@ -106,7 +106,8 @@ export class World {
     this.startScore = carry.score;
     this.lives = carry.lives;
     this.nextLifeAt = carry.nextLifeAt;
-    this.tokens.max = 2 + Math.floor(this.stageN / 4);
+    // no máximo 3 inimigos atacando ao mesmo tempo (2 nas primeiras fases)
+    this.tokens.max = 2 + Math.floor(this.stageN / 6);
     this.maxOnScreen = Math.min(6, 3 + Math.floor(this.stageN / 3));
     this.build();
   }

@@ -308,7 +308,7 @@ export class Player extends Actor {
     } else {
       this.vx = dirX * 1.8;
       this.setState('hurt');
-      this.invuln = 26;
+      this.invuln = 40;
     }
     return true;
   }

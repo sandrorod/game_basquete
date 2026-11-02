@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "node tests/e2e/checklist.mjs"
+    "test:e2e": "node tests/e2e/checklist.mjs && node tests/e2e/attack.mjs"
   },
   "devDependencies": {
     "playwright-core": "^1.49.1",

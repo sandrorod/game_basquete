@@ -38,13 +38,13 @@ export class Enemy extends Actor {
   constructor(kind: EnemyKind, x: number, y: number, w: World, label?: string, seed = Math.floor(rand(0, 1000))) {
     const def = ENEMIES[kind];
     const st = w.stageN;
-    const hp = Math.round(def.hp * (1 + 0.13 * (st - 1)) * w.diff.enemyHp);
+    const hp = Math.round(def.hp * (1 + 0.09 * (st - 1)) * w.diff.enemyHp);
     super(x, y, hp, enemyLook(kind, w.stage.palette, seed));
     this.kind = kind;
     this.def = def;
     this.name = label ?? kind.toUpperCase().replace('THUG', 'STREET THUG').replace('RUNNER', 'FAST RUNNER').replace('HEAVY', 'HEAVY GUY').replace('THIEF', 'BALL THIEF').replace('SHOOTER', 'STREET SHOOTER').replace('BALLER', 'STREET BALLER');
     this.scale = def.scale;
-    this.dmg = Math.round(def.dmg * (1 + 0.07 * (st - 1)) * w.diff.enemyDmg);
+    this.dmg = Math.round(def.dmg * (1 + 0.05 * (st - 1)) * w.diff.enemyDmg);
     this.shotDmg = Math.round(def.dmg * (1 + 0.035 * (st - 1)) * w.diff.enemyDmg);
     this.speed = def.speed * (1 + 0.035 * (st - 1));
     this.aggression = (0.75 + st * 0.035) * w.diff.aggression;
@@ -149,14 +149,14 @@ export class Enemy extends Actor {
       case 'attack': {
         this.vx = this.facing * (this.st < 5 ? 1.2 : 0);
         if (!this.hitDone && this.st >= 3 && this.st <= 8) this.tryHit(w, this.def.reach * this.scale, this.dmg, this.kind === 'heavy');
-        if (this.st >= 22) this.endAttack(rand(40, 80));
+        if (this.st >= 22) this.endAttack(w, rand(40, 80));
         break;
       }
       case 'dash': {
         this.vx = this.facing * this.speed * 2.6;
         this.vy = sign(dy) * Math.min(0.6, Math.abs(dy));
         if (!this.hitDone) this.tryHit(w, 20, this.dmg, false);
-        if (this.st >= 26 || (this.hitDone && this.st > 6)) this.endAttack(rand(50, 90));
+        if (this.st >= 26 || (this.hitDone && this.st > 6)) this.endAttack(w, rand(50, 90));
         break;
       }
       case 'dashSteal': {
@@ -174,9 +174,9 @@ export class Enemy extends Actor {
             this.setState('flee');
           } else {
             this.tryHit(w, 24, this.dmg, false);
-            this.endAttack(70);
+            this.endAttack(w, 70);
           }
-        } else if (this.st > 50) this.endAttack(60);
+        } else if (this.st > 50) this.endAttack(w, 60);
         break;
       }
       case 'flee': {
@@ -329,9 +329,10 @@ export class Enemy extends Actor {
     }
   }
 
-  endAttack(cd: number) {
+  endAttack(w: World, cd: number) {
     this.cooldown = Math.round(cd / this.aggression);
-    this.hasToken = false;
+    // devolve a vez de atacar (libera a vaga para outro inimigo)
+    w.tokens.release(this);
     this.setState('recover');
   }
 
