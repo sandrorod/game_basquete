@@ -1,6 +1,7 @@
 import { FLOOR_TOP, H, W } from '../core/config';
 import { rng, shade, type Rng } from '../core/math';
 import type { ThemeId } from '../data/stages';
+import { drawSprite, sprites } from './sprites';
 
 /** Fator de paralaxe da camada do fundo */
 export const FAR_PARALLAX = 0.35;
@@ -11,6 +12,8 @@ export interface StageArt {
   near: HTMLCanvasElement;
   /** Desenho animado por cima do cenário (neon piscando, holofotes, helicóptero…) */
   live?: (ctx: CanvasRenderingContext2D, camX: number, t: number) => void;
+  /** Cenário vindo do painel do modelo (sem camada de fundo separada) */
+  panel?: boolean;
 }
 
 function canvas(w: number, h: number) {
@@ -163,9 +166,290 @@ function sign(ctx: CanvasRenderingContext2D, x: number, y: number, text: string,
   return w;
 }
 
+
+// ─── Arquitetura menos "quadrada" ───────────────────────────────────────────
+
+/** Cornija com frisos no alto do prédio */
+function cornice(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, color: string) {
+  ctx.fillStyle = shade(color, 0.12);
+  ctx.beginPath();
+  ctx.moveTo(x - 6, y);
+  ctx.lineTo(x + w + 6, y);
+  ctx.lineTo(x + w + 3, y + 7);
+  ctx.lineTo(x - 3, y + 7);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = shade(color, -0.3);
+  ctx.fillRect(x - 3, y + 7, w + 6, 2);
+  ctx.fillStyle = shade(color, -0.15);
+  for (let dx = x; dx < x + w; dx += 7) ctx.fillRect(dx, y + 9, 4, 4);
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.fillRect(x - 6, y, w + 12, 1.5);
+}
+
+/** Toldo listrado com borda ondulada */
+function awning(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, color: string) {
+  const n = Math.max(3, Math.round(w / 14));
+  const sw = w / n;
+  for (let i = 0; i < n; i++) {
+    ctx.fillStyle = i % 2 ? '#f6efe2' : color;
+    ctx.beginPath();
+    ctx.moveTo(x + i * sw + 3, y);
+    ctx.lineTo(x + (i + 1) * sw + 3, y);
+    ctx.lineTo(x + (i + 1) * sw, y + 14);
+    ctx.quadraticCurveTo(x + (i + 0.5) * sw, y + 22, x + i * sw, y + 14);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x + 3, y);
+  ctx.lineTo(x + w + 3, y);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillRect(x, y + 20, w, 4);
+}
+
+/** Janelas em arco (algumas fachadas) */
+function archWindows(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, rows: number, glass: string, frame: string, r: Rng, lit?: string) {
+  for (let row = 0; row < rows; row++) {
+    for (let wx = x + 10; wx + 16 < x + w - 4; wx += 26) {
+      const wy = y + row * 30;
+      ctx.fillStyle = frame;
+      ctx.beginPath();
+      ctx.moveTo(wx - 2, wy + 22);
+      ctx.lineTo(wx - 2, wy + 7);
+      ctx.arc(wx + 8, wy + 7, 10, Math.PI, 0);
+      ctx.lineTo(wx + 18, wy + 22);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = lit && r.chance(0.35) ? lit : glass;
+      ctx.beginPath();
+      ctx.moveTo(wx, wy + 20);
+      ctx.lineTo(wx, wy + 7);
+      ctx.arc(wx + 8, wy + 7, 8, Math.PI, 0);
+      ctx.lineTo(wx + 16, wy + 20);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.fillRect(wx + 2, wy + 4, 3, 15);
+      ctx.fillStyle = shade(frame, 0.2);
+      ctx.fillRect(wx - 4, wy + 21, 24, 2.5);
+    }
+  }
+}
+
+/** Guia da calçada com volume (face inclinada + brilho) */
+function curb(ctx: CanvasRenderingContext2D, w: number, y: number, color: string) {
+  const g = ctx.createLinearGradient(0, y, 0, y + 7);
+  g.addColorStop(0, shade(color, 0.15));
+  g.addColorStop(1, shade(color, -0.35));
+  ctx.fillStyle = g;
+  ctx.fillRect(0, y, w, 7);
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fillRect(0, y, w, 1);
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  for (let x = 0; x < w; x += 46) ctx.fillRect(x, y, 1, 7);
+}
+
+/** Rachaduras e poças no asfalto */
+function cracks(ctx: CanvasRenderingContext2D, w: number, r: Rng, puddle?: string) {
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.lineWidth = 0.8;
+  for (let i = 0; i < w / 160; i++) {
+    let x = r.range(0, w), y = r.range(FLOOR_TOP + 20, H - 6);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    for (let k = 0; k < 5; k++) {
+      x += r.range(4, 12);
+      y += r.range(-4, 4);
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  if (puddle) {
+    for (let i = 0; i < w / 500; i++) {
+      ctx.fillStyle = puddle;
+      ctx.beginPath();
+      ctx.ellipse(r.range(0, w), r.range(FLOOR_TOP + 40, H - 10), r.range(14, 30), r.range(3, 6), 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+// ─── Elementos do modelo espalhados pelo cenário ─────────────────────────────
+
+type Decor = { name: string; h: number; y: number; every: [number, number]; chance?: number; flat?: boolean; glow?: string };
+
+const DECOR: Partial<Record<ThemeId, Decor[]>> = {
+  streets: [
+    { name: 'lamp', h: 118, y: FLOOR_TOP + 4, every: [380, 460], glow: 'rgba(255,233,168,0.32)' },
+    { name: 'traffic_light', h: 74, y: FLOOR_TOP + 6, every: [700, 950] },
+    { name: 'sign_stop', h: 62, y: FLOOR_TOP + 4, every: [600, 900], chance: 0.7 },
+    { name: 'sign_oneway', h: 58, y: FLOOR_TOP + 4, every: [700, 1000], chance: 0.7 },
+    { name: 'ac_unit', h: 26, y: 150, every: [260, 420], chance: 0.8 },
+    { name: 'bike_red', h: 32, y: FLOOR_TOP + 2, every: [600, 900], chance: 0.8 },
+    { name: 'hydrant_post', h: 30, y: FLOOR_TOP + 8, every: [500, 800], chance: 0.6 },
+    { name: 'bollard', h: 20, y: FLOOR_TOP + 13, every: [90, 140], chance: 0.5 },
+    { name: 'manhole', h: 12, y: 316, every: [420, 640], flat: true },
+  ],
+  subway: [
+    { name: 'electric_box', h: 46, y: 210, every: [500, 800], chance: 0.8 },
+    { name: 'vending', h: 64, y: 212, every: [600, 900] },
+    { name: 'bollard', h: 20, y: FLOOR_TOP + 42, every: [120, 200], chance: 0.5 },
+  ],
+  industrial: [
+    { name: 'pallet', h: 22, y: FLOOR_TOP + 2, every: [300, 520] },
+    { name: 'spool', h: 30, y: FLOOR_TOP + 2, every: [500, 800], chance: 0.8 },
+    { name: 'crates_stack', h: 40, y: FLOOR_TOP + 2, every: [500, 800], chance: 0.8 },
+    { name: 'electric_box', h: 46, y: FLOOR_TOP + 2, every: [600, 900], chance: 0.7 },
+    { name: 'pole_a', h: 140, y: FLOOR_TOP + 2, every: [700, 1000] },
+  ],
+  beach: [
+    { name: 'umbrella_red', h: 58, y: 236, every: [500, 800], chance: 0.8 },
+    { name: 'umbrella_blue', h: 58, y: 236, every: [600, 900], chance: 0.8 },
+    { name: 'bike_green', h: 30, y: 234, every: [600, 900], chance: 0.7 },
+    { name: 'sign_ped', h: 52, y: 234, every: [800, 1100], chance: 0.6 },
+  ],
+  night: [
+    { name: 'lamp', h: 118, y: FLOOR_TOP + 4, every: [360, 440], glow: 'rgba(190,240,255,0.3)' },
+    { name: 'traffic_light', h: 74, y: FLOOR_TOP + 6, every: [700, 950] },
+    { name: 'vending', h: 62, y: FLOOR_TOP + 2, every: [600, 900], chance: 0.8 },
+    { name: 'moto_black', h: 38, y: FLOOR_TOP + 4, every: [600, 900], chance: 0.8 },
+    { name: 'pole_b', h: 150, y: FLOOR_TOP + 4, every: [800, 1100] },
+    { name: 'manhole', h: 12, y: 318, every: [420, 640], flat: true },
+    { name: 'grate', h: 12, y: 290, every: [500, 800], flat: true, chance: 0.7 },
+  ],
+  court: [
+    { name: 'vending', h: 62, y: FLOOR_TOP + 2, every: [700, 1000] },
+    { name: 'bike_red', h: 32, y: FLOOR_TOP + 2, every: [500, 800], chance: 0.8 },
+    { name: 'bike_green', h: 32, y: FLOOR_TOP + 2, every: [600, 900], chance: 0.6 },
+  ],
+  chinatown: [
+    { name: 'bike_green', h: 32, y: FLOOR_TOP + 2, every: [500, 800], chance: 0.8 },
+    { name: 'crates_stack', h: 38, y: FLOOR_TOP + 2, every: [500, 800], chance: 0.8 },
+    { name: 'ac_unit', h: 24, y: 96, every: [260, 420], chance: 0.7 },
+    { name: 'hydrant', h: 26, y: FLOOR_TOP + 6, every: [700, 1000], chance: 0.6 },
+  ],
+  underground: [
+    { name: 'electric_box', h: 46, y: 196, every: [500, 800], chance: 0.8 },
+    { name: 'sign_oneway', h: 56, y: 198, every: [700, 1000] },
+    { name: 'bollard', h: 22, y: FLOOR_TOP + 4, every: [110, 180], chance: 0.6 },
+    { name: 'grate', h: 12, y: 310, every: [500, 800], flat: true },
+  ],
+  rooftop: [
+    { name: 'ac_unit', h: 40, y: 208, every: [300, 520], chance: 0.9 },
+    { name: 'electric_box', h: 44, y: 208, every: [600, 900], chance: 0.7 },
+  ],
+};
+
+function decorate(ctx: CanvasRenderingContext2D, theme: ThemeId, length: number, r: Rng) {
+  if (!sprites.loaded) return;
+  for (const d of DECOR[theme] ?? []) {
+    const f = sprites.props[d.name];
+    if (!f) continue;
+    const s = d.h / f.h;
+    for (let x = r.range(60, 200); x < length - 40; x += r.range(d.every[0], d.every[1])) {
+      if (d.chance !== undefined && !r.chance(d.chance)) continue;
+      if (d.glow) {
+        const g = ctx.createRadialGradient(x + 18, d.y - d.h + 10, 2, x + 18, d.y - d.h + 40, 70);
+        g.addColorStop(0, d.glow);
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(x - 60, d.y - d.h - 10, 160, 170);
+      }
+      if (d.flat) {
+        // peças no chão (bueiro, grelha): achatadas pela perspectiva
+        ctx.save();
+        ctx.translate(x, d.y);
+        ctx.scale(1, 0.55);
+        drawSprite(ctx, f, 0, 0, s * 1.6);
+        ctx.restore();
+      } else drawSprite(ctx, f, x, d.y, s);
+    }
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Altura (fração do painel) onde começa o chão em cada cenário do modelo */
+const PANEL_GROUND: Record<number, number> = { 1: 0.86, 2: 0.78, 3: 0.8, 4: 0.8, 5: 0.7, 6: 0.8, 7: 0.82, 8: 0.64, 9: 0.76, 10: 0.8 };
+const THEME_STAGE: Record<ThemeId, number> = { streets: 1, subway: 2, industrial: 3, beach: 4, night: 5, court: 6, chinatown: 7, underground: 8, rooftop: 9, arena: 10 };
+/** Linha (unidades lógicas) onde o chão do painel encontra a rua jogável */
+const PANEL_GROUND_Y = FLOOR_TOP + 6;
+
+/**
+ * Cenário a partir do painel do modelo: a parte de cima vai até o início da rua; o chão do painel é
+ * esticado em perspectiva até a base da tela. O painel se repete ao longo da fase com emenda suave.
+ */
+function buildPanelArt(img: HTMLImageElement, n: number, length: number): StageArt {
+  const g = PANEL_GROUND[n] ?? 0.8;
+  const pw = img.width, ph = img.height;
+  const groundSrc = ph * g;
+  const k = PANEL_GROUND_Y / groundSrc; // escala da parte de cima
+  const tileW = pw * k;
+  const overlap = 70;
+  // pinta o painel (parte de cima + chão esticado em perspectiva) a partir de x
+  const paint = (t: CanvasRenderingContext2D, x: number) => {
+    t.imageSmoothingEnabled = true;
+    t.imageSmoothingQuality = 'high';
+    t.drawImage(img, 0, 0, pw, groundSrc, x, 0, tileW, PANEL_GROUND_Y);
+    const slices = 18;
+    const srcH = ph - groundSrc;
+    for (let i = 0; i < slices; i++) {
+      const a0 = i / slices, a1 = (i + 1) / slices;
+      const dy0 = PANEL_GROUND_Y + (H - PANEL_GROUND_Y) * a0 * a0;
+      const dy1 = PANEL_GROUND_Y + (H - PANEL_GROUND_Y) * a1 * a1;
+      t.drawImage(img, 0, groundSrc + srcH * a0, pw, srcH / slices, x, dy0, tileW, dy1 - dy0 + 0.6);
+    }
+  };
+  // repetição com a borda esquerda em degradê (emenda suave com a anterior)
+  const tile = canvas(tileW, H);
+  paint(tile.ctx, 0);
+  tile.ctx.save();
+  tile.ctx.globalCompositeOperation = 'destination-in';
+  // uma única pintura: com destination-in, cada fillRect apaga tudo fora dele
+  const grd = tile.ctx.createLinearGradient(0, 0, tileW, 0);
+  grd.addColorStop(0, 'rgba(0,0,0,0)');
+  grd.addColorStop(overlap / tileW, 'rgba(0,0,0,1)');
+  grd.addColorStop(1, 'rgba(0,0,0,1)');
+  tile.ctx.fillStyle = grd;
+  tile.ctx.fillRect(0, 0, tileW, H);
+  tile.ctx.restore();
+
+  const near = canvas(length, H);
+  const nctx = near.ctx;
+  paint(nctx, 0);
+  for (let x = tileW - overlap; x < length; x += tileW - overlap) nctx.drawImage(tile.c, 0, 0, tile.c.width, tile.c.height, x, 0, tileW, H);
+  const far = canvas(1, 1);
+  return { far: far.c, near: near.c, live: n === 10 ? arenaLights : undefined, panel: true };
+}
+
+function arenaLights(ctx: CanvasRenderingContext2D, _camX: number, t: number) {
+  // holofotes varrendo a quadra
+  for (let i = 0; i < 3; i++) {
+    const a = Math.sin(t * 0.012 + i * 2.1) * 0.6;
+    ctx.save();
+    ctx.translate(120 + i * 200, -10);
+    ctx.rotate(a);
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, 'rgba(255,250,220,0.22)');
+    g.addColorStop(1, 'rgba(255,250,220,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(-6, 0);
+    ctx.lineTo(6, 0);
+    ctx.lineTo(70, H + 20);
+    ctx.lineTo(-70, H + 20);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
 export function buildStageArt(theme: ThemeId, length: number, seed: number): StageArt {
+  const panel = sprites.stages[THEME_STAGE[theme]];
+  if (panel) return buildPanelArt(panel, THEME_STAGE[theme], length);
   const farW = W + (length - W) * FAR_PARALLAX + 4;
   const far = canvas(farW, FLOOR_TOP);
   const near = canvas(length, H);
@@ -191,14 +475,15 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
         const top = r.range(30, 70);
         const c = r.pick(bricks);
         brickWall(n, x, top, w, FLOOR_TOP - top, c, r);
-        rect(n, x, top - 6, w, 6, shade(c, -0.35));
-        windowsGrid(n, x + 6, top + 12, w - 12, 90, '#3b4a5e', '#d8cdb8', r, '#ffd98a');
+        cornice(n, x, top - 8, w, '#cdbfa6');
+        if (r.chance(0.45)) archWindows(n, x + 6, top + 14, w - 12, 3, '#3b4a5e', '#d8cdb8', r, '#ffd98a');
+        else windowsGrid(n, x + 6, top + 12, w - 12, 90, '#3b4a5e', '#d8cdb8', r, '#ffd98a');
         // loja com porta de aço
         const sx = x + 14, sw = w - 28;
         rect(n, sx, 168, sw, FLOOR_TOP - 168, '#6c7380', '#2a2a2a');
         n.fillStyle = '#596070';
         for (let ly = 172; ly < FLOOR_TOP; ly += 5) n.fillRect(sx + 2, ly, sw - 4, 2);
-        rect(n, sx - 4, 156, sw + 8, 12, r.pick(['#2d6a4f', '#9d0208', '#1d3557', '#6a4c93']), '#111');
+        awning(n, sx - 6, 150, sw + 12, r.pick(['#2d6a4f', '#9d0208', '#1d3557', '#6a4c93', '#e76f51']));
         if (r.chance(0.8)) graffiti(n, sx + r.range(4, sw - 70), r.range(196, 222), r, ['#ff5d8f', '#4cc9f0', '#f9c74f', '#90be6d', '#f3722c']);
         // escada de incêndio
         if (r.chance(0.5)) {
@@ -214,8 +499,9 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
         }
         x += w;
       }
-      for (let lx = 120; lx < length; lx += 420) lampPost(n, lx);
       floor(n, length, '#8a8d92', '#3c3f45', { curb: '#a9acb1', curbH: 14, tile: 46, dash: '#e9c46a', dashY: 304, noise: 'rgba(0,0,0,0.2)' }, r);
+      curb(n, length, FLOOR_TOP + 14, '#a9acb1');
+      cracks(n, length, r, 'rgba(60,70,90,0.35)');
       break;
     }
     case 'subway': {
@@ -435,7 +721,9 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
         const w = r.range(160, 240);
         const c = r.pick(['#1f1b33', '#2a1f3d', '#1b2433', '#2b1b2b']);
         rect(n, x, 40, w, FLOOR_TOP - 40, c);
-        windowsGrid(n, x + 6, 50, w - 12, 100, '#14102a', '#3a3352', r, '#ffcf6b');
+        cornice(n, x, 32, w, '#4a4266');
+        if (r.chance(0.4)) archWindows(n, x + 6, 52, w - 12, 3, '#14102a', '#3a3352', r, '#ffcf6b');
+        else windowsGrid(n, x + 6, 50, w - 12, 100, '#14102a', '#3a3352', r, '#ffcf6b');
         rect(n, x + 10, 170, w - 20, FLOOR_TOP - 170, '#0f0c1d', '#000');
         const text = r.pick(['CLUB 88', 'HOTEL', 'BAR', 'LIVE', 'DISCO', 'PIZZA', 'ARCADE', 'OPEN 24H']);
         const color = r.pick(['#ff3fd2', '#38f6ff', '#ffe14d', '#7cff6b', '#ff6b3d']);
@@ -443,8 +731,9 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
         x += w;
       }
       for (const ne of neons) sign(n, ne.x, ne.y, ne.text, '#0a0814', ne.color, ne.color, 12);
-      for (let lx = 100; lx < length; lx += 380) lampPost(n, lx, '#c9f2ff');
       floor(n, length, '#2c2f3a', '#14151c', { curb: '#3e4252', curbH: 12, dash: '#f2f2f2', dashY: 308 }, r);
+      curb(n, length, FLOOR_TOP + 12, '#3e4252');
+      cracks(n, length, r, 'rgba(120,160,255,0.12)');
       // reflexos na rua molhada
       for (const ne of neons) {
         n.fillStyle = ne.color + '33';
@@ -585,6 +874,8 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
         rect(n, lx - 3, 147, 6, 2, '#d4a017');
       }
       floor(n, length, '#7d7068', '#4e4540', { tile: 28, lines: 'rgba(0,0,0,0.3)', curb: '#9a8c82', curbH: 8 }, r);
+      curb(n, length, FLOOR_TOP + 8, '#9a8c82');
+      cracks(n, length, r);
       break;
     }
     case 'underground': {
@@ -622,6 +913,7 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
       n.fillStyle = grad(n, 44, 52, [[0, '#7c8188'], [1, '#3e4248']]);
       n.fillRect(0, 44, length, 8);
       floor(n, length, '#5f6369', '#34373c', { noise: 'rgba(0,0,0,0.25)' }, r);
+      cracks(n, length, r, 'rgba(40,50,60,0.35)');
       n.strokeStyle = '#e8e8e8';
       n.lineWidth = 2;
       for (let x = 0; x < length; x += 90) {
@@ -719,7 +1011,7 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
         rect(f, x, 84, 120, 52, '#111', '#555');
         f.fillStyle = '#ffcf33';
         f.font = 'bold 13px "Bungee", "Arial Black"';
-        f.fillText('THE KING', x + 18, 108);
+        f.fillText('KING BALL', x + 14, 108);
         f.fillStyle = '#38f6ff';
         f.font = 'bold 9px Arial';
         f.fillText('VS  STREET PLAYER', x + 16, 124);
@@ -788,6 +1080,7 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
       break;
     }
   }
+  decorate(n, theme, length, r);
   return { far: far.c, near: near.c, live };
 }
 

@@ -1,6 +1,8 @@
+import { PICKUPS, type PickupKind } from '../data/items';
 import { shade } from '../core/math';
 import type { ProjKind } from '../data/bosses';
 import type { PropKind } from '../data/stages';
+import { drawSprite, sprites } from './sprites';
 
 const OUT = '#15121c';
 
@@ -14,27 +16,72 @@ function box(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: 
 
 /** Tamanho visual de cada obstáculo (largura, altura) e da "pegada" no chão (w, profundidade) */
 export const PROP_SIZE: Record<PropKind, { w: number; h: number; fw: number; fd: number; hp: number; solid: boolean }> = {
-  trash: { w: 22, h: 30, fw: 20, fd: 10, hp: 12, solid: true },
-  crate: { w: 28, h: 26, fw: 28, fd: 12, hp: 14, solid: true },
-  barrel: { w: 22, h: 32, fw: 22, fd: 10, hp: 18, solid: true },
-  chair: { w: 22, h: 26, fw: 20, fd: 8, hp: 8, solid: true },
-  table: { w: 40, h: 24, fw: 40, fd: 12, hp: 14, solid: true },
-  car: { w: 120, h: 46, fw: 116, fd: 22, hp: 0, solid: true },
-  barrier: { w: 46, h: 26, fw: 46, fd: 10, hp: 0, solid: true },
-  umbrella: { w: 46, h: 58, fw: 10, fd: 6, hp: 10, solid: false },
+  trash: { w: 30, h: 46, fw: 26, fd: 12, hp: 12, solid: true },
+  crate: { w: 36, h: 34, fw: 34, fd: 14, hp: 14, solid: true },
+  barrel: { w: 30, h: 42, fw: 28, fd: 12, hp: 18, solid: true },
+  chair: { w: 30, h: 40, fw: 26, fd: 10, hp: 8, solid: true },
+  table: { w: 60, h: 42, fw: 56, fd: 14, hp: 14, solid: true },
+  car: { w: 140, h: 66, fw: 132, fd: 24, hp: 0, solid: true },
+  barrier: { w: 56, h: 46, fw: 54, fd: 12, hp: 0, solid: true },
+  umbrella: { w: 90, h: 104, fw: 10, fd: 6, hp: 10, solid: false },
   surfboard: { w: 16, h: 52, fw: 14, fd: 6, hp: 10, solid: true },
   stall: { w: 56, h: 50, fw: 54, fd: 14, hp: 20, solid: true },
-  cone: { w: 14, h: 20, fw: 12, fd: 8, hp: 4, solid: true },
-  hydrant: { w: 14, h: 22, fw: 12, fd: 8, hp: 0, solid: true },
-  machine: { w: 60, h: 52, fw: 58, fd: 16, hp: 0, solid: true },
-  bench: { w: 48, h: 20, fw: 48, fd: 10, hp: 12, solid: true },
+  cone: { w: 22, h: 32, fw: 18, fd: 10, hp: 4, solid: true },
+  hydrant: { w: 20, h: 38, fw: 16, fd: 10, hp: 0, solid: true },
+  machine: { w: 52, h: 68, fw: 48, fd: 16, hp: 0, solid: true },
+  bench: { w: 76, h: 40, fw: 70, fd: 12, hp: 12, solid: true },
   ballrack: { w: 40, h: 30, fw: 40, fd: 10, hp: 12, solid: true },
   tank: { w: 44, h: 50, fw: 42, fd: 16, hp: 0, solid: true },
   antenna: { w: 20, h: 70, fw: 12, fd: 8, hp: 0, solid: true },
   dumpster: { w: 62, h: 36, fw: 60, fd: 16, hp: 0, solid: true },
   pot: { w: 22, h: 24, fw: 20, fd: 10, hp: 8, solid: true },
   speaker: { w: 30, h: 44, fw: 28, fd: 12, hp: 16, solid: true },
+  pallet: { w: 54, h: 28, fw: 50, fd: 14, hp: 14, solid: true },
+  tire: { w: 44, h: 26, fw: 40, fd: 12, hp: 10, solid: true },
+  spool: { w: 50, h: 46, fw: 46, fd: 14, hp: 16, solid: true },
+  crates: { w: 48, h: 48, fw: 44, fd: 14, hp: 20, solid: true },
+  vending: { w: 42, h: 86, fw: 40, fd: 16, hp: 0, solid: true },
+  moto: { w: 84, h: 52, fw: 78, fd: 14, hp: 0, solid: true },
+  bike: { w: 74, h: 46, fw: 68, fd: 10, hp: 10, solid: true },
 };
+
+/**
+ * Obstáculos desenhados com os sprites do modelo: variações e altura na tela.
+ * Proporcional ao herói (88 de altura ≈ 1,90 m → ~46 por metro).
+ */
+export const PROP_SPRITES: Partial<Record<PropKind, { names: string[]; h: number[] }>> = {
+  trash: { names: ['trash_metal', 'trash_green'], h: [46, 44] },
+  crate: { names: ['crate_a', 'crate_b', 'crate_c'], h: [34, 32, 32] },
+  barrel: { names: ['barrel_red', 'barrel_blue', 'barrel_yellow'], h: [42, 42, 42] },
+  chair: { names: ['chair_plastic'], h: [40] },
+  table: { names: ['table_set'], h: [42] },
+  car: { names: ['car_red', 'car_blue'], h: [66, 66] },
+  barrier: { names: ['barrier_a', 'barrier_b'], h: [46, 46] },
+  umbrella: { names: ['umbrella_red', 'umbrella_blue'], h: [104, 104] },
+  cone: { names: ['cone_a', 'cone_b'], h: [32, 32] },
+  hydrant: { names: ['hydrant'], h: [38] },
+  machine: { names: ['electric_box', 'ac_unit'], h: [68, 40] },
+  bench: { names: ['bench_a', 'bench_b'], h: [40, 40] },
+  pallet: { names: ['pallet'], h: [28] },
+  tire: { names: ['tire'], h: [26] },
+  spool: { names: ['spool'], h: [46] },
+  crates: { names: ['crates_stack'], h: [48] },
+  vending: { names: ['vending'], h: [86] },
+  moto: { names: ['moto_red', 'moto_black'], h: [52, 52] },
+  bike: { names: ['bike_red', 'bike_green'], h: [46, 46] },
+};
+
+/** Desenha o obstáculo com sprite (quando existe); devolve false para usar o desenho antigo */
+export function drawPropSprite(ctx: CanvasRenderingContext2D, kind: PropKind, x: number, y: number, flash: boolean, dmg: number, seed: number) {
+  const def = PROP_SPRITES[kind];
+  if (!def || !sprites.loaded) return false;
+  const i = Math.abs(Math.floor(seed * 1000)) % def.names.length;
+  const f = sprites.props[def.names[i]];
+  if (!f) return false;
+  const s = def.h[i] / f.h;
+  drawSprite(ctx, f, x + (dmg > 0 ? Math.sin(dmg * 9) * dmg * 1.5 : 0), y, s, { flash });
+  return true;
+}
 
 export function drawProp(ctx: CanvasRenderingContext2D, kind: PropKind, x: number, y: number, flash: boolean, dmg: number, accent: string) {
   const s = PROP_SIZE[kind];
@@ -327,68 +374,22 @@ export function drawProp(ctx: CanvasRenderingContext2D, kind: PropKind, x: numbe
   ctx.restore();
 }
 
-export type PickupKind = 'burger' | 'soda' | 'star' | 'oneup' | 'chicken';
-
-export function drawPickup(ctx: CanvasRenderingContext2D, kind: PickupKind, x: number, y: number, t: number) {
+/** Prêmio no chão: sprite do modelo, flutuando e brilhando (pisca antes de sumir) */
+export function drawPickup(ctx: CanvasRenderingContext2D, kind: PickupKind, x: number, y: number, t: number, left = 900) {
+  const f = sprites.items[kind];
+  if (!f) return;
+  if (left < 150 && Math.floor(t / 5) % 2) return;
+  const d = PICKUPS[kind];
   const bob = Math.sin(t * 0.1) * 2;
-  const by = y - 8 + bob;
   ctx.save();
-  ctx.shadowColor = '#ffffff';
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(x, y, 7, 2.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowColor = d.color;
   ctx.shadowBlur = 6 + Math.sin(t * 0.2) * 3;
-  switch (kind) {
-    case 'burger':
-      ctx.fillStyle = '#e9a23b';
-      ctx.beginPath();
-      ctx.ellipse(x, by - 4, 9, 5, 0, Math.PI, 0);
-      ctx.fill();
-      ctx.fillStyle = '#6b3a1e';
-      ctx.fillRect(x - 9, by - 4, 18, 3);
-      ctx.fillStyle = '#5fbf3a';
-      ctx.fillRect(x - 9.5, by - 1, 19, 2);
-      ctx.fillStyle = '#e9a23b';
-      ctx.fillRect(x - 9, by + 1, 18, 3);
-      break;
-    case 'chicken':
-      ctx.fillStyle = '#c9732c';
-      ctx.beginPath();
-      ctx.ellipse(x - 2, by, 9, 6, -0.3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#f5ead8';
-      ctx.fillRect(x + 5, by - 6, 3, 8);
-      ctx.beginPath();
-      ctx.arc(x + 6.5, by - 7, 2.5, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    case 'soda':
-      ctx.fillStyle = '#e63946';
-      ctx.fillRect(x - 4, by - 8, 8, 13);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(x - 4, by - 3, 8, 3);
-      ctx.fillStyle = '#bbb';
-      ctx.fillRect(x - 3, by - 9, 6, 2);
-      break;
-    case 'star':
-      ctx.fillStyle = '#ffd23f';
-      ctx.beginPath();
-      for (let i = 0; i < 10; i++) {
-        const a = (i / 10) * Math.PI * 2 - Math.PI / 2 + t * 0.04;
-        const r = i % 2 ? 4 : 9;
-        ctx.lineTo(x + Math.cos(a) * r, by + Math.sin(a) * r);
-      }
-      ctx.fill();
-      break;
-    case 'oneup':
-      ctx.fillStyle = '#2ecc71';
-      ctx.beginPath();
-      ctx.arc(x, by, 9, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 8px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('1UP', x, by + 3);
-      ctx.textAlign = 'left';
-      break;
-  }
+  const s = d.size / Math.max(f.w, f.h);
+  ctx.drawImage(f.img, x - (f.w * s) / 2, y - 4 + bob - f.h * s, f.w * s, f.h * s);
   ctx.restore();
 }
 
@@ -462,6 +463,24 @@ export function drawProjectile(ctx: CanvasRenderingContext2D, kind: ProjKind, x:
       ctx.fill();
       ctx.stroke();
       break;
+    case 'clipboard':
+      // prancheta do COACH girando
+      ctx.rotate(t * 0.5);
+      ctx.fillStyle = '#6b4a2b';
+      ctx.fillRect(-7, -9, 14, 18);
+      ctx.fillStyle = '#f2f2f2';
+      ctx.fillRect(-5, -6, 10, 13);
+      ctx.fillStyle = '#c0c0c0';
+      ctx.fillRect(-3, -10, 6, 3);
+      ctx.strokeStyle = '#2b6cff';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(-3, -3);
+      ctx.lineTo(3, 3);
+      ctx.moveTo(3, -3);
+      ctx.lineTo(-3, 3);
+      ctx.stroke();
+      break;
     case 'ball':
       break;
   }
@@ -512,25 +531,120 @@ export function drawBike(ctx: CanvasRenderingContext2D, x: number, y: number, fa
   ctx.restore();
 }
 
-/** Trem do metrô passando na faixa de trás */
+/** Trem do metrô passando na faixa de trás (proporcional: bem mais alto que o jogador) */
+export const TRAIN_CAR = 340;
 export function drawTrain(ctx: CanvasRenderingContext2D, x: number, y: number, length: number) {
-  for (let i = 0; i < length; i += 150) {
+  const Hh = 170;
+  for (let i = 0; i < length; i += TRAIN_CAR) {
     const cx = x + i;
-    ctx.fillStyle = '#c9ced6';
-    ctx.fillRect(cx, y - 70, 146, 70);
+    const front = i === 0;
+    const L = cx + (front ? 0 : 6), R = cx + TRAIN_CAR - 6;
+    const top = y - Hh;
+    // carroceria com teto arredondado
+    const g = ctx.createLinearGradient(0, top, 0, y);
+    g.addColorStop(0, '#e8ecf2');
+    g.addColorStop(0.55, '#c3cad4');
+    g.addColorStop(1, '#8d96a3');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(L + (front ? 26 : 0), top + 12);
+    ctx.quadraticCurveTo(L + (front ? 26 : 0), top, L + (front ? 40 : 12), top);
+    ctx.lineTo(R - 12, top);
+    ctx.quadraticCurveTo(R, top, R, top + 12);
+    ctx.lineTo(R, y - 14);
+    ctx.lineTo(L, y - 14);
+    if (front) {
+      ctx.lineTo(L, y - 70);
+      ctx.quadraticCurveTo(L + 2, top + 20, L + 26, top + 12);
+    } else ctx.lineTo(L, top + 12);
+    ctx.closePath();
+    ctx.fill();
     ctx.strokeStyle = OUT;
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(cx, y - 70, 146, 70);
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // faixas da companhia
     ctx.fillStyle = '#2a9d8f';
-    ctx.fillRect(cx, y - 30, 146, 8);
-    for (let w = 0; w < 4; w++) {
-      ctx.fillStyle = '#1d3557';
-      ctx.fillRect(cx + 10 + w * 34, y - 60, 24, 20);
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.fillRect(cx + 12 + w * 34, y - 58, 6, 16);
+    ctx.fillRect(L + (front ? 6 : 0), y - 52, R - L - (front ? 6 : 0), 12);
+    ctx.fillStyle = '#e9c46a';
+    ctx.fillRect(L + (front ? 6 : 0), y - 38, R - L - (front ? 6 : 0), 4);
+    // janelas com passageiros e portas
+    for (let k = 0; k < 4; k++) {
+      const wx = L + 52 + k * 60;
+      if (wx + 40 > R) break;
+      if (k % 2 === 1) {
+        // porta dupla
+        ctx.fillStyle = '#9aa3ad';
+        ctx.fillRect(wx - 4, top + 18, 44, Hh - 34);
+        ctx.strokeStyle = OUT;
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(wx - 4, top + 18, 44, Hh - 34);
+        ctx.beginPath();
+        ctx.moveTo(wx + 18, top + 18);
+        ctx.lineTo(wx + 18, y - 16);
+        ctx.stroke();
+        ctx.fillStyle = '#1d3557';
+        ctx.fillRect(wx + 1, top + 26, 13, 44);
+        ctx.fillRect(wx + 22, top + 26, 13, 44);
+      } else {
+        ctx.fillStyle = '#16233a';
+        ctx.fillRect(wx, top + 24, 40, 48);
+        ctx.fillStyle = 'rgba(255,240,200,0.18)';
+        ctx.fillRect(wx, top + 24, 40, 48);
+        // silhuetas de passageiros
+        ctx.fillStyle = '#0b1220';
+        for (let p = 0; p < 2; p++) {
+          ctx.beginPath();
+          ctx.arc(wx + 10 + p * 18, top + 44, 5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillRect(wx + 4 + p * 18, top + 50, 12, 22);
+        }
+        ctx.strokeStyle = OUT;
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(wx, top + 24, 40, 48);
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.fillRect(wx + 3, top + 27, 6, 40);
+      }
     }
-    ctx.fillStyle = '#333';
-    ctx.fillRect(cx + 6, y - 6, 134, 6);
+    if (front) {
+      // para-brisa, farol e número da linha
+      ctx.fillStyle = '#16233a';
+      ctx.beginPath();
+      ctx.moveTo(L + 8, y - 78);
+      ctx.quadraticCurveTo(L + 10, top + 30, L + 32, top + 22);
+      ctx.lineTo(L + 40, top + 22);
+      ctx.lineTo(L + 40, y - 78);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#fff7b0';
+      ctx.shadowColor = '#fff7b0';
+      ctx.shadowBlur = 16;
+      ctx.beginPath();
+      ctx.arc(L + 12, y - 28, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#e63946';
+      ctx.fillRect(L + 40, top + 6, 26, 12);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 9px Arial';
+      ctx.fillText('L5', L + 46, top + 15);
+    }
+    // rodas e engates
+    ctx.fillStyle = '#2b2f36';
+    ctx.fillRect(L + 4, y - 14, R - L - 8, 8);
+    for (const wx of [L + 40, L + 76, R - 76, R - 40]) {
+      ctx.fillStyle = '#1b1d22';
+      ctx.beginPath();
+      ctx.arc(wx, y - 6, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#7d848f';
+      ctx.beginPath();
+      ctx.arc(wx, y - 6, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (!front) {
+      ctx.fillStyle = '#3a3f47';
+      ctx.fillRect(cx - 6, y - 70, 12, 40);
+    }
   }
 }
 
@@ -539,7 +653,9 @@ export function drawTrafficCar(ctx: CanvasRenderingContext2D, x: number, y: numb
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(facing, 1);
-  drawProp(ctx, 'car', 0, 0, false, 0, color);
+  const carSprite = sprites.loaded ? sprites.props.car_blue : undefined;
+  if (carSprite) drawSprite(ctx, carSprite, 0, 0, 66 / carSprite.h);
+  else drawProp(ctx, 'car', 0, 0, false, 0, color);
   // farol aceso
   const g = ctx.createLinearGradient(58, -18, 160, -18);
   g.addColorStop(0, 'rgba(255,240,170,0.55)');

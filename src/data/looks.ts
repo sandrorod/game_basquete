@@ -10,7 +10,7 @@ export const HERO: Look = {
 const SKINS = ['#f1c7a0', '#d9a074', '#b5754a', '#8a5432', '#5e3a24', '#e9b98f'];
 const HAIRS = ['#1b1210', '#3a2416', '#6b4423', '#b88a3a', '#d8d0c0', '#20202a'];
 
-export type EnemyKind = 'thug' | 'runner' | 'heavy' | 'thief' | 'shooter' | 'defender' | 'biker' | 'baller';
+export type EnemyKind = 'thug' | 'runner' | 'heavy' | 'thief' | 'shooter' | 'defender' | 'biker' | 'baller' | 'gangster' | 'knife';
 
 /** Visual base de cada tipo de inimigo; cada fase troca as cores (gangues diferentes). */
 export function enemyLook(kind: EnemyKind, palette: { a: string; b: string; c: string }, seed: number): Look {
@@ -32,6 +32,10 @@ export function enemyLook(kind: EnemyKind, palette: { a: string; b: string; c: s
       return { ...common, hairStyle: 'buzz', top: palette.c, trim: '#ffffff', topStyle: 'tee', bottom: palette.a, bottomStyle: 'pants', build: BUILDS.big, gloves: palette.a, armor: '#6d7480' };
     case 'biker':
       return { ...common, hairStyle: 'long', top: '#1b1b1f', trim: palette.a, topStyle: 'jacket', bottom: '#26262e', bottomStyle: 'pants', build: BUILDS.normal, bandana: palette.a, shades: '#222222', gloves: '#111111' };
+    case 'gangster':
+      return { ...common, hairStyle: 'short', top: '#4b2a7a', trim: '#c0392b', topStyle: 'jacket', bottom: '#4b2a7a', bottomStyle: 'pants', build: BUILDS.normal, cap: '#3a1f5e' };
+    case 'knife':
+      return { ...common, hairStyle: 'short', top: '#c0392b', trim: '#222222', topStyle: 'jacket', bottom: '#3a3f4a', bottomStyle: 'pants', build: BUILDS.slim, cap: '#c0392b' };
     case 'baller':
       return { ...common, hairStyle: (['afro', 'topknot', 'short'] as const)[seed % 3], top: palette.a, trim: palette.c, topStyle: 'tank', number: String(10 + (seed % 89)), bottom: palette.a, bottomStyle: 'shorts', build: BUILDS.athletic, headband: palette.c, sock: '#ffffff', shoe: palette.b };
   }

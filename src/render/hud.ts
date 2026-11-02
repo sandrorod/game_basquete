@@ -1,7 +1,6 @@
 import { H, W } from '../core/config';
-import { drawFighter } from './fighter';
-import { HERO } from '../data/looks';
-import { poseFor } from './poses';
+import { drawHeroSprite } from './spriteAnim';
+import { sprites } from './sprites';
 
 export const FONT = '"Press Start 2P", monospace';
 
@@ -47,6 +46,9 @@ export interface HudData {
   combo: number;
   comboT: number;
   boss?: { name: string; hp: number; trail: number; enraged: boolean };
+  money?: number;
+  continues?: number;
+  buffs?: { shield: number; glove: number; rocket: number; magnet: number };
   ballReady: boolean;
   charge: number;
   turbo: boolean;
@@ -65,16 +67,17 @@ export function drawHud(ctx: CanvasRenderingContext2D, d: HudData) {
   ctx.fillStyle = '#8a1520';
   ctx.fill();
   ctx.clip();
-  drawFighter(ctx, 22, 116, HERO, poseFor('idle', d.t, { expr: d.hp < 0.25 ? 'hurt' : 'normal' }), { facing: 1, scale: 1.45 });
+  // retrato: o rosto do STREET PLAYER (quadro parado do modelo, ampliado)
+  drawHeroSprite(ctx, 24, 120, { state: d.hp < 0.25 ? 'hurt' : 'idle', st: 20, t: 0, vx: 0, vy: 0, facing: 1, hasBall: false, quick: true, hp: 100 }, { scale: 1.3 });
   ctx.restore();
   ctx.strokeStyle = '#ffd23f';
   ctx.lineWidth = 1.5;
   ctx.strokeRect(8, 8, 32, 38);
-  text(ctx, 'PLAYER 1', 46, 16, 7, '#ffd23f');
+  text(ctx, 'JOGADOR 1', 46, 16, 7, '#ffd23f');
   bar(ctx, 46, 20, 150, 9, d.hp, d.hpTrail, d.hp < 0.25 && Math.floor(d.t / 8) % 2 ? ['#ff6b6b', '#c92a2a'] : ['#7cff6b', '#1f9d3a']);
   // barra especial (SP)
   bar(ctx, 46, 33, 100, 5, d.sp, d.sp, d.sp >= 1 && Math.floor(d.t / 6) % 2 ? ['#ffffff', '#38f6ff'] : ['#38f6ff', '#1e63d6']);
-  text(ctx, d.turbo ? 'TURBO' : d.sp >= 1 ? 'SUPER!' : 'POWER', 150, 39, 5, d.turbo ? '#ffd23f' : d.sp >= 1 ? '#38f6ff' : '#9fdcff');
+  text(ctx, d.turbo ? 'TURBO' : d.sp >= 1 ? 'SUPER!' : 'PODER', 150, 39, 5, d.turbo ? '#ffd23f' : d.sp >= 1 ? '#38f6ff' : '#9fdcff');
   // vidas
   for (let i = 0; i < Math.min(d.lives, 6); i++) {
     ctx.fillStyle = '#f07818';
@@ -91,10 +94,35 @@ export function drawHud(ctx: CanvasRenderingContext2D, d: HudData) {
   ctx.fill();
   ctx.globalAlpha = 1;
 
+  // dinheiro, fichas de continue e efeitos ativos
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(4, 52, 238, 14);
+  const icon = (name: string, x: number, y: number, size: number) => {
+    const f = sprites.items[name];
+    if (!f) return;
+    const s = size / Math.max(f.w, f.h);
+    ctx.drawImage(f.img, x, y, f.w * s, f.h * s);
+  };
+  icon('coin', 7, 54, 10);
+  text(ctx, `R$ ${(d.money ?? 0).toLocaleString('pt-BR')}`, 20, 63, 6, '#7cff6b');
+  icon('crown', 100, 54, 10);
+  text(ctx, `x${d.continues ?? 0}`, 113, 63, 6, '#ffd23f');
+  let bx = 140;
+  if (d.buffs) {
+    const names: [keyof NonNullable<HudData['buffs']>, string][] = [['shield', 'shield'], ['glove', 'glove'], ['rocket', 'rocket'], ['magnet', 'magnet']];
+    for (const [k, ic] of names) {
+      const left = d.buffs[k];
+      if (left <= 0 || (left < 90 && Math.floor(d.t / 6) % 2)) continue;
+      icon(ic, bx, 54, 10);
+      text(ctx, String(Math.ceil(left / 60)), bx + 12, 63, 5, '#ffffff');
+      bx += 26;
+    }
+  }
+
   // pontuação e fase
-  text(ctx, 'SCORE', W - 8, 14, 7, '#ffd23f', 'right');
+  text(ctx, 'PONTOS', W - 8, 14, 7, '#ffd23f', 'right');
   text(ctx, String(d.score).padStart(8, '0'), W - 8, 26, 9, '#ffffff', 'right');
-  text(ctx, `STAGE ${d.stage}`, W - 8, 40, 7, '#38f6ff', 'right');
+  text(ctx, `FASE ${d.stage}`, W - 8, 40, 7, '#38f6ff', 'right');
   text(ctx, d.stageName, W - 8, 50, 5, '#cfe9ff', 'right');
 
   // barra do chefe
@@ -103,7 +131,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, d: HudData) {
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(bx - 6, by - 14, bw + 12, 28);
     text(ctx, d.boss.name, bx, by - 3, 7, d.boss.enraged && Math.floor(d.t / 10) % 2 ? '#ff4d4d' : '#ffd23f');
-    if (d.boss.enraged) text(ctx, 'RAGE', bx + bw, by - 3, 6, '#ff4d4d', 'right');
+    if (d.boss.enraged) text(ctx, 'FÚRIA', bx + bw, by - 3, 6, '#ff4d4d', 'right');
     bar(ctx, bx, by + 1, bw, 9, d.boss.hp, d.boss.trail, ['#ff5d5d', '#a4161a']);
   }
 
@@ -113,7 +141,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, d: HudData) {
     ctx.save();
     ctx.translate(W - 70, 92);
     ctx.scale(s, s);
-    text(ctx, `${d.combo} HITS`, 0, 0, 11, '#ffd23f', 'center');
+    text(ctx, `${d.combo} ACERTOS`, 0, 0, 11, '#ffd23f', 'center');
     text(ctx, 'COMBO!', 0, 12, 7, '#ff8a3d', 'center');
     ctx.restore();
   }
@@ -121,12 +149,12 @@ export function drawHud(ctx: CanvasRenderingContext2D, d: HudData) {
   // carga do arremesso especial
   if (d.charge > 0) {
     bar(ctx, W / 2 - 40, H - 22, 80, 6, d.charge, d.charge, d.charge >= 1 ? ['#ffffff', '#ffd23f'] : ['#ffd23f', '#ff8a3d']);
-    text(ctx, d.charge >= 1 ? 'MAX!' : 'CHARGE', W / 2, H - 26, 6, '#ffd23f', 'center');
+    text(ctx, d.charge >= 1 ? 'MÁX!' : 'CARGA', W / 2, H - 26, 6, '#ffd23f', 'center');
   }
 
   // GO ▸
   if (d.go && Math.floor(d.t / 20) % 2 === 0) {
-    text(ctx, 'GO', W - 60, H / 2 - 20, 18, '#ffd23f', 'center', 4);
+    text(ctx, 'VAI', W - 60, H / 2 - 20, 18, '#ffd23f', 'center', 4);
     ctx.fillStyle = '#ffd23f';
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 3;

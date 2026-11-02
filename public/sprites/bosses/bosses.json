@@ -1,0 +1,72 @@
+{
+ "razor": {
+  "file": "razor.png",
+  "w": 155,
+  "h": 208,
+  "footX": 67,
+  "base": 208
+ },
+ "titan": {
+  "file": "titan.png",
+  "w": 160,
+  "h": 203,
+  "footX": 66,
+  "base": 203
+ },
+ "viper": {
+  "file": "viper.png",
+  "w": 140,
+  "h": 203,
+  "footX": 69,
+  "base": 203
+ },
+ "coach": {
+  "file": "coach.png",
+  "w": 144,
+  "h": 204,
+  "footX": 67,
+  "base": 204
+ },
+ "dunker": {
+  "file": "dunker.png",
+  "w": 144,
+  "h": 202,
+  "footX": 66,
+  "base": 202
+ },
+ "shotgun": {
+  "file": "shotgun.png",
+  "w": 155,
+  "h": 202,
+  "footX": 79,
+  "base": 202
+ },
+ "ace": {
+  "file": "ace.png",
+  "w": 181,
+  "h": 200,
+  "footX": 58,
+  "base": 200
+ },
+ "big": {
+  "file": "big.png",
+  "w": 175,
+  "h": 205,
+  "footX": 88,
+  "base": 205
+ },
+ "hoops": {
+  "file": "hoops.png",
+  "w": 133,
+  "h": 203,
+  "footX": 50,
+  "base": 203
+ },
+ "king": {
+  "file": "king.png",
+  "w": 173,
+  "h": 202,
+  "footX": 76,
+  "base": 202
+ }
+}

@@ -1,6 +1,6 @@
 import { PROP_SIZE } from '../render/props';
 import type { PropKind } from '../data/stages';
-import type { PickupKind } from '../render/props';
+import type { PickupKind } from '../data/items';
 
 export class Obstacle {
   kind: PropKind;
@@ -43,10 +43,15 @@ export class Pickup {
   y: number;
   t = 0;
   taken = false;
-  constructor(kind: PickupKind, x: number, y: number) {
+  /** Pulinho ao sair do objeto quebrado */
+  z = 0;
+  vz = 2.5;
+  vx: number;
+  constructor(kind: PickupKind, x: number, y: number, vx = 0) {
     this.kind = kind;
     this.x = x;
     this.y = y;
+    this.vx = vx;
   }
 }
 

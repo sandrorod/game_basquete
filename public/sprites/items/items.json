@@ -1,0 +1,122 @@
+{
+ "burger": {
+  "file": "burger.png",
+  "w": 230,
+  "h": 216,
+  "footX": 115
+ },
+ "fries": {
+  "file": "fries.png",
+  "w": 300,
+  "h": 217,
+  "footX": 150
+ },
+ "pizza": {
+  "file": "pizza.png",
+  "w": 252,
+  "h": 212,
+  "footX": 126
+ },
+ "soda": {
+  "file": "soda.png",
+  "w": 307,
+  "h": 241,
+  "footX": 153
+ },
+ "star": {
+  "file": "star.png",
+  "w": 222,
+  "h": 213,
+  "footX": 111
+ },
+ "coin": {
+  "file": "coin.png",
+  "w": 211,
+  "h": 211,
+  "footX": 105
+ },
+ "diamond": {
+  "file": "diamond.png",
+  "w": 307,
+  "h": 189,
+  "footX": 153
+ },
+ "heart": {
+  "file": "heart.png",
+  "w": 213,
+  "h": 182,
+  "footX": 106
+ },
+ "lightning": {
+  "file": "lightning.png",
+  "w": 241,
+  "h": 207,
+  "footX": 120
+ },
+ "trophy": {
+  "file": "trophy.png",
+  "w": 231,
+  "h": 226,
+  "footX": 115
+ },
+ "gift": {
+  "file": "gift.png",
+  "w": 228,
+  "h": 215,
+  "footX": 114
+ },
+ "medkit": {
+  "file": "medkit.png",
+  "w": 307,
+  "h": 184,
+  "footX": 153
+ },
+ "potion_blue": {
+  "file": "potion_blue.png",
+  "w": 252,
+  "h": 219,
+  "footX": 126
+ },
+ "potion_purple": {
+  "file": "potion_purple.png",
+  "w": 243,
+  "h": 251,
+  "footX": 121
+ },
+ "crown": {
+  "file": "crown.png",
+  "w": 225,
+  "h": 228,
+  "footX": 112
+ },
+ "rocket": {
+  "file": "rocket.png",
+  "w": 233,
+  "h": 224,
+  "footX": 116
+ },
+ "glove": {
+  "file": "glove.png",
+  "w": 226,
+  "h": 206,
+  "footX": 113
+ },
+ "mushroom": {
+  "file": "mushroom.png",
+  "w": 206,
+  "h": 186,
+  "footX": 103
+ },
+ "shield": {
+  "file": "shield.png",
+  "w": 206,
+  "h": 218,
+  "footX": 103
+ },
+ "magnet": {
+  "file": "magnet.png",
+  "w": 203,
+  "h": 207,
+  "footX": 101
+ }
+}

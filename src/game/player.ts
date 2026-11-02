@@ -3,8 +3,8 @@ import { FLOOR_BOTTOM, FLOOR_TOP } from '../core/config';
 import type { Input } from '../core/input';
 import { clamp } from '../core/math';
 import { HERO } from '../data/looks';
-import { drawFighter } from '../render/fighter';
-import { poseFor, type Anim } from '../render/poses';
+import { NO_GEAR, type GearStats } from '../data/shop';
+import { drawHeroSprite } from '../render/spriteAnim';
 import { Actor } from './actor';
 import { resolveObstacles } from './obstacle';
 import { Projectile } from './projectile';
@@ -15,9 +15,10 @@ type ThrowKind = 'quick' | 'strong';
 const WALK = 2.1;
 const RUN = 3.7;
 const DEPTH = 1.55;
-/** Custo do turbo na barra de poder (0..1) */
-const TURBO_START = 0.05;
-const TURBO_DRAIN = 0.0025;
+/** Arremesso turbinado (K): custo na barra de poder = mínimo + proporcional à carga */
+const TURBO_MIN = 0.15;
+const TURBO_PER_CHARGE = 0.3;
+const turboCost = (c: number) => TURBO_MIN + TURBO_PER_CHARGE * c;
 
 export class Player extends Actor {
   ball: 'hand' | 'out' | 'stolen' = 'hand';
@@ -37,6 +38,18 @@ export class Player extends Actor {
   hitThisShove = new Set<number>();
   /** Modo de teste: não perde energia */
   god = false;
+  /** Bônus dos itens equipados (mochila) */
+  gear: GearStats = NO_GEAR;
+  /** Efeitos temporários dos prêmios (quadros restantes) */
+  buffs = { shield: 0, glove: 0, rocket: 0, magnet: 0 };
+
+  get dmgMul() {
+    return (1 + this.gear.dmg) * (this.buffs.glove > 0 ? 1.5 : 1);
+  }
+
+  get speedMul() {
+    return (1 + this.gear.speed) * (this.buffs.rocket > 0 ? 1.35 : 1);
+  }
 
   constructor(x: number, y: number) {
     super(x, y, 100, HERO);
@@ -57,10 +70,12 @@ export class Player extends Actor {
     if (this.throwCd > 0) this.throwCd--;
     if (this.noPowerT > 0) this.noPowerT--;
     if (this.bufferedThrow > 0) this.bufferedThrow--;
+    for (const k of Object.keys(this.buffs) as (keyof Player['buffs'])[]) if (this.buffs[k] > 0) this.buffs[k]--;
+    if (this.buffs.rocket > 0 && this.state === 'run' && this.st % 4 === 0) w.fx.smoke(this.x - this.facing * 10, this.y, 20);
     if (this.comboT > 0 && --this.comboT === 0) this.combo = 0;
     if (this.ball === 'stolen' && this.stolenT > 0 && --this.stolenT === 0) {
       this.ball = 'hand';
-      w.fx.popup(this.x, this.y - 80, 'NEW BALL!', '#ffd23f', 7);
+      w.fx.popup(this.x, this.y - 80, 'BOLA NOVA!', '#ffd23f', 7);
       audio.sfx('pickup');
     }
 
@@ -69,24 +84,10 @@ export class Player extends Actor {
       case 'idle':
       case 'walk':
       case 'run': {
-        // Turbo (correr) gasta a barra de poder: 5% para começar e ~15% por segundo correndo
-        const wantsRun = input.running() && ax.x !== 0;
-        if (wantsRun && !this.running) {
-          if (this.sp >= TURBO_START) {
-            this.sp -= TURBO_START;
-            this.running = true;
-          } else if (this.noPowerT <= 0) {
-            this.noPowerT = 60;
-            w.fx.popup(this.x, this.y - 88, 'NO POWER', '#9fdcff', 7);
-          }
-        } else if (!wantsRun) this.running = false;
-        if (this.running) {
-          this.sp = Math.max(0, this.sp - TURBO_DRAIN);
-          if (this.sp <= 0) this.running = false;
-        }
-        const sp = this.running ? RUN : WALK;
+        this.running = input.running() && ax.x !== 0;
+        const sp = (this.running ? RUN : WALK) * this.speedMul;
         this.vx += (ax.x * sp - this.vx) * 0.32;
-        this.vy += (ax.y * (this.running ? DEPTH * 1.15 : DEPTH) - this.vy) * 0.38;
+        this.vy += (ax.y * (this.running ? DEPTH * 1.15 : DEPTH) * this.speedMul - this.vy) * 0.38;
         if (ax.x > 0.1) this.facing = 1;
         else if (ax.x < -0.1) this.facing = -1;
         const moving = Math.abs(this.vx) > 0.25 || Math.abs(this.vy) > 0.25;
@@ -99,6 +100,15 @@ export class Player extends Actor {
         if (input.wasPressed('special')) {
           if (this.sp >= 1) return this.startSuper(w);
           if (this.ball === 'hand') {
+            // o turbo da bola gasta a barra de poder: sem o mínimo, não dá para usar
+            if (this.sp < TURBO_MIN) {
+              if (this.noPowerT <= 0) {
+                this.noPowerT = 45;
+                w.fx.popup(this.x, this.y - 88, 'SEM PODER', '#9fdcff', 7);
+                audio.sfx('block');
+              }
+              return;
+            }
             this.charge = 0;
             this.setState('charge');
             return;
@@ -139,7 +149,9 @@ export class Player extends Actor {
         this.vy += (ax.y * DEPTH * 0.45 - this.vy) * 0.3;
         if (ax.x > 0.1) this.facing = 1;
         else if (ax.x < -0.1) this.facing = -1;
-        this.charge = Math.min(1, this.charge + 1 / 55);
+        // a carga vai até onde o poder disponível paga
+        const maxCharge = Math.max(0, Math.min(1, (this.sp - TURBO_MIN) / TURBO_PER_CHARGE));
+        this.charge = Math.min(maxCharge, this.charge + 1 / 55);
         if (this.st % 6 === 0 && this.charge > 0.3) w.fx.hit(this.x + this.facing * 4, this.y, 92 * this.scale, false, '#ffd23f');
         if (!input.isHeld('special') || input.wasReleased('special')) {
           if (this.charge < 0.15) {
@@ -148,6 +160,8 @@ export class Player extends Actor {
           } else {
             const c = this.charge;
             this.charge = 0;
+            this.sp = Math.max(0, this.sp - turboCost(c));
+            w.fx.popup(this.x, this.y - 90, `-${Math.round(turboCost(c) * 100)}% PODER`, '#38f6ff', 6);
             this.release(w, 'special', c);
           }
         }
@@ -260,7 +274,7 @@ export class Player extends Actor {
       power === 'quick' ? { vx: 10, dmg: 10, range: 270, lane: 13 } :
       power === 'strong' ? { vx: 12.5, dmg: 22, range: 320, lane: 15 } :
       { vx: 10 + 4 * c, dmg: Math.round(12 + 30 * c), range: 340, lane: 13 + 6 * c };
-    const p = new Projectile({ x: this.x + this.facing * 14, y: this.y, z, vx: stats.vx * this.facing, kind: 'ball', fromPlayer: true, dmg: stats.dmg, power, range: stats.range, laneTol: stats.lane });
+    const p = new Projectile({ x: this.x + this.facing * 14, y: this.y, z, vx: stats.vx * this.facing, kind: 'ball', fromPlayer: true, dmg: Math.round(stats.dmg * this.dmgMul), power, range: stats.range, laneTol: stats.lane });
     p.mainBall = true;
     p.ownerId = this.id;
     if (power === 'special') {
@@ -283,13 +297,13 @@ export class Player extends Actor {
     w.fx.flash = 10;
     w.freeze(6);
     audio.sfx('super');
-    w.fx.popup(this.x, this.y - 90, 'SUPER SHOT!', '#38f6ff', 10);
+    w.fx.popup(this.x, this.y - 90, 'SUPER ARREMESSO!', '#38f6ff', 10);
   }
 
   private fireSuper(w: World) {
     for (const dy of [-44, -22, 0, 22, 44]) {
       const y = clamp(this.y + dy, FLOOR_TOP + 6, FLOOR_BOTTOM - 2);
-      const p = new Projectile({ x: this.x + this.facing * 14, y, z: 40, vx: 9 * this.facing, kind: 'ball', fromPlayer: true, dmg: 30, power: 'super', range: 520, laneTol: 16, maxLife: 90 });
+      const p = new Projectile({ x: this.x + this.facing * 14, y, z: 40, vx: 9 * this.facing, kind: 'ball', fromPlayer: true, dmg: Math.round(30 * this.dmgMul), power: 'super', range: 520, laneTol: 16, maxLife: 90 });
       p.pierce = true;
       p.glow = '#38f6ff';
       w.projectiles.push(p);
@@ -303,6 +317,15 @@ export class Player extends Actor {
     // modo de teste (robô): ignora o golpe por completo (sem dano nem atordoamento)
     if (this.god && !force) return false;
     if (this.god) dmg = 0;
+    // escudo (prêmio): bloqueia o golpe
+    if (this.buffs.shield > 0 && !force) {
+      w.fx.hit(this.x, this.y, 45, false, '#7cff6b');
+      audio.sfx('block');
+      this.invuln = 20;
+      return false;
+    }
+    // camiseta e outros itens: menos dano
+    dmg = Math.max(1, Math.round(dmg * (1 - Math.min(0.6, this.gear.def))));
     this.hp = Math.max(0, this.hp - dmg);
     this.tookDamage = true;
     this.flash = 6;
@@ -339,23 +362,34 @@ export class Player extends Actor {
   }
 
   draw(ctx: CanvasRenderingContext2D, camX: number, t: number) {
-    const map: Record<string, Anim> = {
-      idle: 'idle', walk: Math.abs(this.vy) > Math.abs(this.vx) * 1.2 ? (this.vy < 0 ? 'walkUp' : 'walkDown') : 'walk', run: 'run',
-      windup: 'windup', throw: 'throw', charge: 'charge', super: this.st < 18 ? 'charge' : 'throw', shove: this.st < 4 ? 'punchWind' : 'punch',
-      hurt: 'hurt', fall: 'fall', down: this.hp <= 0 ? 'ko' : 'down', getup: 'getup', ko: 'ko', respawn: 'jump', celebrate: 'celebrate', falling: 'fall',
-    };
-    const anim = map[this.state] ?? 'idle';
-    const hasBall = this.ball === 'hand';
-    const ballMode = this.state === 'windup' ? (hasBall ? 'hand' : 'none') : ['idle', 'walk', 'run'].includes(this.state) && hasBall ? 'dribble' : this.state === 'celebrate' ? 'overhead' : 'none';
-    const progress = this.state === 'fall' ? Math.min(1, this.st / 16) : this.state === 'getup' ? this.st / 24 : this.state === 'windup' ? this.st / 13 : 0;
-    const pose = poseFor(anim, this.state === 'idle' || this.state === 'walk' || this.state === 'run' ? t : this.st, { ball: ballMode, progress, spin: t * 0.3 });
     const blink = this.invuln > 0 && this.invuln < 900 && !['fall', 'down', 'ko'].includes(this.state) && Math.floor(this.invuln / 4) % 2 === 0;
-    let scale = this.scale * 1.08;
+    let scale = 1;
     let alpha = blink ? 0.45 : 1;
+    let drop = 0;
     if (this.state === 'falling') {
-      scale *= Math.max(0.1, 1 - this.st / 45);
+      scale = Math.max(0.1, 1 - this.st / 45);
       alpha = Math.max(0, 1 - this.st / 45);
+      drop = this.st * 0.8;
     }
-    drawFighter(ctx, this.x - camX, this.y - this.z + (this.state === 'falling' ? this.st * 0.8 : 0), this.look, pose, { facing: this.facing, scale, flash: this.flash > 0, alpha });
+    // efeitos dos prêmios: escudo (bolha verde), luva (brilho vermelho)
+    const px = this.x - camX, py = this.y - this.z + drop;
+    if (this.buffs.glove > 0 || this.buffs.shield > 0) {
+      ctx.save();
+      const end = Math.min(this.buffs.glove || 999, this.buffs.shield || 999) < 90;
+      ctx.globalAlpha = end && Math.floor(t / 6) % 2 ? 0.1 : 0.3 + Math.sin(t * 0.2) * 0.08;
+      ctx.fillStyle = this.buffs.shield > 0 ? '#7cff6b' : '#ff4d4d';
+      ctx.beginPath();
+      ctx.ellipse(px, py - 44, 30, 50, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    // sprites do modelo do STREET PLAYER (tools/slice_hero.py)
+    drawHeroSprite(
+      ctx,
+      this.x - camX,
+      this.y - this.z + drop,
+      { state: this.state, st: this.st, t, vx: this.vx, vy: this.vy, facing: this.facing, hasBall: this.ball === 'hand', quick: this.throwKind === 'quick', hp: this.hp },
+      { flash: this.flash > 0, alpha, scale },
+    );
   }
 }

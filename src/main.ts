@@ -3,6 +3,7 @@ import { audio } from './core/audio';
 import { H, STEP, W } from './core/config';
 import { Input } from './core/input';
 import { loadSave } from './core/save';
+import { loadSprites } from './render/sprites';
 import { Game } from './game/game';
 import { Screens } from './ui/screens';
 import { setupTouch } from './ui/touch';
@@ -82,7 +83,8 @@ function frame(now: number) {
 }
 
 // Espera as fontes de fliperama para os textos do canvas
-Promise.race([document.fonts.load('10px "Press Start 2P"'), new Promise((r) => setTimeout(r, 1500))]).then(() => {
+// e os sprites dos modelos (herói, inimigos, objetos)
+Promise.all([Promise.race([document.fonts.load('10px "Press Start 2P"'), new Promise((r) => setTimeout(r, 1500))]), loadSprites()]).then(() => {
   game.toTitle();
   requestAnimationFrame(frame);
 });

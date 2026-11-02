@@ -69,6 +69,8 @@ window.__runBot = function ({ god = false, startStage = 0, maxStages = 10, maxFr
       if (food && p.hp < 70 && !foes.length) { inp.release('right'); inp.press(food.x > p.x ? 'right' : 'left'); inp.press(food.y > p.y ? 'down' : 'up'); }
     } else if (g.state === 'intro' || g.state === 'clear') {
       if (stageFrames % 20 === 0) inp.press('confirm');
+    } else if (g.state === 'shop') {
+      g.leaveShop();
     }
     g.update();
   }

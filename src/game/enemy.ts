@@ -3,14 +3,28 @@ import { FLOOR_BOTTOM, FLOOR_TOP, W } from '../core/config';
 import { chance, clamp, rand, sign } from '../core/math';
 import { ENEMIES, type EnemyDef } from '../data/enemies';
 import { enemyLook, type EnemyKind } from '../data/looks';
-import { drawBall, drawFighter } from '../render/fighter';
+import { drawBall } from '../render/fighter';
 import { enemyBar } from '../render/hud';
-import { poseFor, type Anim } from '../render/poses';
-import { drawBike } from '../render/props';
+import { enemyFrame, enemyFrames, enemyScale } from '../render/spriteAnim';
+import { drawSprite, type Frame } from '../render/sprites';
 import { Actor, type Power } from './actor';
 import { resolveObstacles } from './obstacle';
 import { Projectile } from './projectile';
 import type { World } from './world';
+
+/** Nomes dos inimigos (em português) */
+const ENEMY_NAMES: Record<EnemyKind, string> = {
+  thug: 'BRIGÃO DE RUA',
+  runner: 'CORREDOR',
+  heavy: 'GRANDALHÃO',
+  thief: 'LADRÃO DE BOLA',
+  shooter: 'ATIRADOR',
+  defender: 'DEFENSOR',
+  biker: 'MOTOQUEIRO',
+  baller: 'JOGADOR RIVAL',
+  gangster: 'GÂNGSTER',
+  knife: 'NAVALHA',
+};
 
 export class Enemy extends Actor {
   kind: EnemyKind;
@@ -21,6 +35,9 @@ export class Enemy extends Actor {
   hasToken = false;
   /** Lado preferido em volta do jogador e deslocamento de profundidade (evita amontoar) */
   side: 1 | -1 = 1;
+  /** Desvio de obstáculo: para que lado contornar (−1 por cima, +1 por baixo) e por quanto tempo */
+  detour = 0;
+  detourT = 0;
   laneOff = 0;
   thinkT = 0;
   holdingBall = false;
@@ -42,7 +59,7 @@ export class Enemy extends Actor {
     super(x, y, hp, enemyLook(kind, w.stage.palette, seed));
     this.kind = kind;
     this.def = def;
-    this.name = label ?? kind.toUpperCase().replace('THUG', 'STREET THUG').replace('RUNNER', 'FAST RUNNER').replace('HEAVY', 'HEAVY GUY').replace('THIEF', 'BALL THIEF').replace('SHOOTER', 'STREET SHOOTER').replace('BALLER', 'STREET BALLER');
+    this.name = label ?? ENEMY_NAMES[kind];
     this.scale = def.scale;
     this.dmg = Math.round(def.dmg * (1 + 0.05 * (st - 1)) * w.diff.enemyDmg);
     this.shotDmg = Math.round(def.dmg * (1 + 0.035 * (st - 1)) * w.diff.enemyDmg);
@@ -168,7 +185,7 @@ export class Enemy extends Actor {
             p.ball = 'stolen';
             p.stolenT = 0;
             this.holdingBall = true;
-            w.fx.popup(this.x, this.y - 80, 'STOLEN!', '#ff4d6d', 8);
+            w.fx.popup(this.x, this.y - 80, 'ROUBOU!', '#ff4d6d', 8);
             audio.sfx('steal');
             w.tokens.release(this);
             this.setState('flee');
@@ -190,7 +207,7 @@ export class Enemy extends Actor {
           this.remove = true;
           this.dead = true;
           p.stolenT = 75;
-          w.fx.popup(p.x, p.y - 90, 'BALL LOST!', '#ff4d6d', 7);
+          w.fx.popup(p.x, p.y - 90, 'PERDEU A BOLA!', '#ff4d6d', 7);
         }
         break;
       }
@@ -290,6 +307,7 @@ export class Enemy extends Actor {
         break;
     }
 
+    if (this.state !== 'ride' && this.state !== 'rideWait' && this.z === 0) this.avoidObstacles(w);
     const margin = this.state === 'flee' || this.state === 'ride' || this.state === 'rideWait' ? 400 : 40;
     this.physics(w.camX - margin, w.camX + W + margin);
     if (this.state !== 'ride' && this.state !== 'rideWait') resolveObstacles(this, w.obstacles, 8, 4);
@@ -354,7 +372,7 @@ export class Enemy extends Actor {
   /** Recebe um golpe; devolve 'block' quando defendeu */
   receive(w: World, dmg: number, power: Power, dirX: number): 'block' | 'hit' | 'ko' {
     if (this.state === 'block' && power === 'quick' && sign(-dirX) === this.facing) {
-      w.fx.popup(this.x, this.y - 74 * this.scale, 'BLOCK', '#9fdcff', 7);
+      w.fx.popup(this.x, this.y - 74 * this.scale, 'BLOQUEOU', '#9fdcff', 7);
       audio.sfx('block');
       return 'block';
     }
@@ -379,17 +397,17 @@ export class Enemy extends Actor {
     if (this.kind === 'biker' && (this.state === 'ride' || this.state === 'rideWait')) {
       const big = power === 'strong' || power === 'special' || power === 'super' || power === 'hazard';
       if (!big && this.hp > this.maxHp * 0.5) return 'hit';
-      // derrubado da moto: a moto se desfaz e ele segue lutando a pé
-      this.def = { ...ENEMIES.thug, score: ENEMIES.biker.score };
-      this.speed = this.def.speed * 1.1;
-      w.fx.debris(this.x, this.y, this.look.trim, 18);
-      w.fx.popup(this.x, this.y - 70, 'CRASH!', '#ff8a3d', 8);
+      // derrubado da moto: a moto se desfaz e ele está fora da luta
+      w.fx.debris(this.x, this.y, '#c0392b', 22);
+      w.fx.popup(this.x, this.y - 70, 'BATEU!', '#ff8a3d', 8);
       audio.sfx('break');
+      this.hp = 0;
+      this.dead = true;
       this.vx = dirX * 3;
       this.vz = 3.4;
       this.z = 0.1;
       this.setState('fall');
-      return 'hit';
+      return 'ko';
     }
     const big = power === 'strong' || power === 'special' || power === 'super' || power === 'hazard';
     if (this.def.armor && !big) return 'hit';
@@ -403,6 +421,43 @@ export class Enemy extends Actor {
       this.setState('hurt');
     }
     return 'hit';
+  }
+
+  /**
+   * Contorna objetos sólidos (carros, geladeiras, caçambas): se o próximo passo bate num deles,
+   * anda na profundidade pelo lado mais curto (ou mais perto do alvo) até passar.
+   */
+  private avoidObstacles(w: World) {
+    if (this.detourT > 0) this.detourT--;
+    const moving = Math.abs(this.vx) > 0.2;
+    if (!moving && this.detourT <= 0) return;
+    const ahead = this.x + sign(this.vx || this.facing) * 16;
+    let block: { x0: number; x1: number; y0: number; y1: number } | null = null;
+    for (const o of w.obstacles) {
+      if (o.broken || !o.solid) continue;
+      const f = o.footprint();
+      if (ahead + 8 > f.x0 && ahead - 8 < f.x1 && this.y + 6 > f.y0 && this.y - 6 < f.y1) {
+        block = f;
+        break;
+      }
+    }
+    if (!block) {
+      if (this.detourT <= 0) this.detour = 0;
+      return;
+    }
+    if (this.detourT <= 0 || this.detour === 0) {
+      // lado livre mais perto; empate: o lado do jogador
+      const upFree = block.y0 - 8 > FLOOR_TOP + 4;
+      const downFree = block.y1 + 8 < FLOOR_BOTTOM;
+      const upCost = this.y - block.y0, downCost = block.y1 - this.y;
+      const towardPlayer = sign(w.player.y - this.y) || 1;
+      this.detour = !upFree ? 1 : !downFree ? -1 : Math.abs(upCost - downCost) < 6 ? towardPlayer : upCost < downCost ? -1 : 1;
+      this.detourT = 40;
+    }
+    const spd = Math.max(1, this.speed);
+    this.vy = this.detour * spd * 0.9;
+    // perto da quina: segura o avanço até sair da frente do objeto
+    this.vx *= 0.25;
   }
 
   drawShadowR() {
@@ -434,34 +489,43 @@ export class Enemy extends Actor {
     ctx.textAlign = 'left';
   }
 
+  /** Quadros do sprite deste inimigo (chefes usam uma variação recolorida) */
+  spriteFrames(): Frame[] {
+    return enemyFrames(this.kind);
+  }
+
+  /** Altura na tela (unidades lógicas) */
+  get drawHeight() {
+    return this.kind === 'biker' && (this.state === 'ride' || this.state === 'rideWait') ? 72 : 84 * this.scale;
+  }
+
   draw(ctx: CanvasRenderingContext2D, camX: number, t: number) {
     const sx = this.x - camX, sy = this.y - this.z;
-    const riding = this.kind === 'biker' && (this.state === 'ride' || this.state === 'rideWait');
-    if (riding) drawBike(ctx, sx, sy, this.facing, t, this.look.trim, this.flash > 0);
-    const map: Record<string, Anim> = {
-      approach: Math.abs(this.vx) + Math.abs(this.vy) > 0.3 ? (Math.abs(this.vx) > 1.9 ? 'run' : 'walk') : 'idle',
-      windup: this.def.attack === 'punch' ? (this.kind === 'heavy' ? 'punchWind' : this.id % 2 ? 'kickWind' : 'punchWind') : 'punchWind',
-      attack: this.kind === 'heavy' || this.id % 2 === 0 ? 'punch' : 'kick',
-      dash: 'dash', dashSteal: 'run', flee: 'run', shootWind: 'shootWind', shoot: 'shoot', block: 'block', dodge: 'walk',
-      ride: 'ride', rideWait: 'ride', recover: 'idle', hurt: 'hurt', fall: this.hp <= 0 ? 'fall' : 'pushed', down: 'down', getup: 'getup', ko: 'ko',
-    };
-    const anim = map[this.state] ?? 'idle';
-    const prog = this.state === 'fall' ? Math.min(1, this.st / 14) : this.state === 'getup' ? this.st / 22 : 0;
-    const animT = this.state === 'approach' ? t + this.id * 13 : this.st;
-    const ballMode = this.kind === 'baller' && this.state === 'shootWind' ? 'hand' : 'none';
-    const pose = poseFor(anim, animT, { progress: prog, expr: this.state === 'down' || this.state === 'ko' ? 'ko' : this.state === 'hurt' ? 'hurt' : 'angry', ball: ballMode });
+    const frames = this.spriteFrames();
+    const moving = Math.abs(this.vx) + Math.abs(this.vy) > 0.3;
+    const r = enemyFrame({ kind: this.kind, state: this.state, st: this.st, t: t + this.id * 13, moving, fast: Math.abs(this.vx) > 1.9, hp: this.hp });
+    const f = frames[r.idx] ?? frames[0];
+    const H = this.drawHeight;
+    const s = enemyScale(frames, r.idx, H);
     // pisca antes de sumir
     const alpha = this.state === 'ko' && this.st > 25 ? (Math.floor(this.st / 3) % 2 ? 0.2 : 1) : 1;
-    drawFighter(ctx, sx, sy - (riding ? 8 : 0), this.look, pose, { facing: this.facing, scale: this.scale, flash: this.flash > 0, alpha });
-    if (this.holdingBall) drawBall(ctx, sx + this.facing * 10, sy - 42 * this.scale, 6, t * 0.2);
+    drawSprite(ctx, f, sx, sy, s, { facing: this.facing, flash: this.flash > 0, alpha, rot: r.rot });
+    // clarão do disparo (STREET SHOOTER)
+    if (this.kind === 'shooter' && this.state === 'shoot' && this.st < 5) {
+      ctx.fillStyle = '#fff3a0';
+      ctx.beginPath();
+      ctx.arc(sx + this.facing * f.w * s * 0.62, sy - H * 0.66, 5 - this.st, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (this.holdingBall) drawBall(ctx, sx + this.facing * 12, sy - H * 0.5, 6, t * 0.2);
     if (this.state === 'windup' && this.st % 8 < 4) {
       // aviso de ataque
       ctx.fillStyle = '#ffdd33';
       ctx.font = 'bold 12px "Press Start 2P", monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('!', sx, sy - 82 * this.scale);
+      ctx.fillText('!', sx, sy - H - 6);
       ctx.textAlign = 'left';
     }
-    if (!this.isBoss && this.state !== 'ko') enemyBar(ctx, sx, sy - 80 * this.scale - (riding ? 8 : 0), this.hp / this.maxHp, this.trail, this.name, true);
+    if (!this.isBoss && this.state !== 'ko') enemyBar(ctx, sx, sy - H - 4, this.hp / this.maxHp, this.trail, this.name, true);
   }
 }

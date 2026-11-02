@@ -1,3 +1,6 @@
+/* Fontes dentro do jogo (funciona sem internet, inclusive no APK) */
+@font-face { font-family: 'Press Start 2P'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/pressstart2p-latin.woff2') format('woff2'); }
+@font-face { font-family: 'Bungee'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/bungee-latin.woff2') format('woff2'); }
 :root {
   --yellow: #ffd23f;
   --cyan: #38f6ff;
@@ -64,3 +67,29 @@ h3 { font-size: 10px; color: var(--cyan); margin: 14px 0 6px; }
 #ui:has(.victory) { justify-content: flex-start; }
 .screen.victory { margin-left: 3vw; max-width: 58vw; }
 @media (max-width: 700px) { .screen.victory { max-width: 64vw; margin-left: 1vw; } }
+
+/* Loja e mochila */
+.screen.wide { width: 100%; }
+.panel.shop { max-width: min(96vw, 900px); width: 100%; padding: 14px 16px; }
+.items { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin: 10px 0; max-height: 52vh; overflow-y: auto; text-align: left; }
+.item { display: grid; grid-template-columns: 30px 1fr; grid-template-rows: auto auto auto; column-gap: 8px; row-gap: 4px; align-items: center; background: rgba(255,255,255,0.06); border: 2px solid #333a55; border-radius: 6px; padding: 8px; }
+.item.on { border-color: var(--cyan); box-shadow: 0 0 10px rgba(56,246,255,0.35); }
+.item .ic { grid-row: span 2; font-size: 22px; text-align: center; }
+.item .nm { font-size: 8px; color: var(--yellow); line-height: 1.5; }
+.item .st, .item .pr { font-size: 6.5px; color: #cfe9ff; line-height: 1.6; }
+.item .btn { grid-column: span 2; padding: 7px 8px; font-size: 9px; }
+.btn.off { opacity: 0.45; }
+.menu.row { flex-direction: row; justify-content: center; flex-wrap: wrap; }
+.money { color: #7cff6b; }
+.dim { opacity: 0.8; }
+
+/* Ranking e recorde */
+.rank { border-collapse: collapse; margin: 8px auto; font-size: clamp(7px, 1.4vw, 10px); }
+.rank th { color: var(--cyan); padding: 4px 10px; }
+.rank td { padding: 5px 10px; color: #fff; }
+.rank tr:nth-child(even) td { background: rgba(255,255,255,0.05); }
+.rank tr.hl td { color: #000; background: var(--yellow); }
+.record { margin: 8px 0; }
+.new-rec { color: var(--yellow); font-size: 12px; margin: 4px 0; }
+.rec-row { display: flex; gap: 8px; justify-content: center; align-items: center; }
+input.name { font-family: var(--font); font-size: 12px; padding: 10px; width: 190px; background: #111; color: var(--yellow); border: 3px solid var(--yellow); border-radius: 4px; text-transform: uppercase; }

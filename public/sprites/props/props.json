@@ -1,0 +1,266 @@
+{
+ "trash_metal": {
+  "file": "trash_metal.png",
+  "w": 68,
+  "h": 106,
+  "footX": 34
+ },
+ "trash_green": {
+  "file": "trash_green.png",
+  "w": 64,
+  "h": 91,
+  "footX": 32
+ },
+ "trash_fallen": {
+  "file": "trash_fallen.png",
+  "w": 123,
+  "h": 90,
+  "footX": 73
+ },
+ "crate_a": {
+  "file": "crate_a.png",
+  "w": 86,
+  "h": 95,
+  "footX": 40
+ },
+ "crate_b": {
+  "file": "crate_b.png",
+  "w": 75,
+  "h": 78,
+  "footX": 35
+ },
+ "crate_c": {
+  "file": "crate_c.png",
+  "w": 78,
+  "h": 75,
+  "footX": 32
+ },
+ "barrel_blue": {
+  "file": "barrel_blue.png",
+  "w": 53,
+  "h": 85,
+  "footX": 26
+ },
+ "barrel_red": {
+  "file": "barrel_red.png",
+  "w": 57,
+  "h": 93,
+  "footX": 28
+ },
+ "barrel_yellow": {
+  "file": "barrel_yellow.png",
+  "w": 54,
+  "h": 92,
+  "footX": 26
+ },
+ "cone_a": {
+  "file": "cone_a.png",
+  "w": 65,
+  "h": 94,
+  "footX": 31
+ },
+ "cone_b": {
+  "file": "cone_b.png",
+  "w": 62,
+  "h": 96,
+  "footX": 29
+ },
+ "bench_a": {
+  "file": "bench_a.png",
+  "w": 150,
+  "h": 108,
+  "footX": 42
+ },
+ "bench_b": {
+  "file": "bench_b.png",
+  "w": 110,
+  "h": 91,
+  "footX": 26
+ },
+ "table_set": {
+  "file": "table_set.png",
+  "w": 158,
+  "h": 98,
+  "footX": 110
+ },
+ "chair_plastic": {
+  "file": "chair_plastic.png",
+  "w": 79,
+  "h": 101,
+  "footX": 40
+ },
+ "car_red": {
+  "file": "car_red.png",
+  "w": 160,
+  "h": 79,
+  "footX": 62
+ },
+ "car_blue": {
+  "file": "car_blue.png",
+  "w": 159,
+  "h": 94,
+  "footX": 54
+ },
+ "moto_red": {
+  "file": "moto_red.png",
+  "w": 116,
+  "h": 97,
+  "footX": 22
+ },
+ "moto_black": {
+  "file": "moto_black.png",
+  "w": 88,
+  "h": 87,
+  "footX": 41
+ },
+ "bike_red": {
+  "file": "bike_red.png",
+  "w": 108,
+  "h": 101,
+  "footX": 52
+ },
+ "bike_green": {
+  "file": "bike_green.png",
+  "w": 88,
+  "h": 92,
+  "footX": 20
+ },
+ "umbrella_red": {
+  "file": "umbrella_red.png",
+  "w": 120,
+  "h": 114,
+  "footX": 72
+ },
+ "umbrella_blue": {
+  "file": "umbrella_blue.png",
+  "w": 119,
+  "h": 116,
+  "footX": 46
+ },
+ "sign_stop": {
+  "file": "sign_stop.png",
+  "w": 58,
+  "h": 111,
+  "footX": 28
+ },
+ "sign_ped": {
+  "file": "sign_ped.png",
+  "w": 57,
+  "h": 111,
+  "footX": 28
+ },
+ "sign_oneway": {
+  "file": "sign_oneway.png",
+  "w": 75,
+  "h": 106,
+  "footX": 36
+ },
+ "barrier_a": {
+  "file": "barrier_a.png",
+  "w": 140,
+  "h": 117,
+  "footX": 24
+ },
+ "barrier_b": {
+  "file": "barrier_b.png",
+  "w": 79,
+  "h": 83,
+  "footX": 37
+ },
+ "pallet": {
+  "file": "pallet.png",
+  "w": 136,
+  "h": 103,
+  "footX": 68
+ },
+ "tire": {
+  "file": "tire.png",
+  "w": 91,
+  "h": 75,
+  "footX": 47
+ },
+ "spool": {
+  "file": "spool.png",
+  "w": 103,
+  "h": 109,
+  "footX": 50
+ },
+ "crates_stack": {
+  "file": "crates_stack.png",
+  "w": 109,
+  "h": 117,
+  "footX": 57
+ },
+ "ac_unit": {
+  "file": "ac_unit.png",
+  "w": 93,
+  "h": 110,
+  "footX": 47
+ },
+ "vending": {
+  "file": "vending.png",
+  "w": 77,
+  "h": 118,
+  "footX": 38
+ },
+ "electric_box": {
+  "file": "electric_box.png",
+  "w": 98,
+  "h": 123,
+  "footX": 51
+ },
+ "lamp": {
+  "file": "lamp.png",
+  "w": 77,
+  "h": 130,
+  "footX": 17
+ },
+ "pole_a": {
+  "file": "pole_a.png",
+  "w": 55,
+  "h": 123,
+  "footX": 24
+ },
+ "pole_b": {
+  "file": "pole_b.png",
+  "w": 161,
+  "h": 137,
+  "footX": 94
+ },
+ "hydrant_post": {
+  "file": "hydrant_post.png",
+  "w": 36,
+  "h": 113,
+  "footX": 19
+ },
+ "traffic_light": {
+  "file": "traffic_light.png",
+  "w": 33,
+  "h": 114,
+  "footX": 16
+ },
+ "hydrant": {
+  "file": "hydrant.png",
+  "w": 45,
+  "h": 108,
+  "footX": 21
+ },
+ "manhole": {
+  "file": "manhole.png",
+  "w": 80,
+  "h": 61,
+  "footX": 38
+ },
+ "grate": {
+  "file": "grate.png",
+  "w": 72,
+  "h": 67,
+  "footX": 40
+ },
+ "bollard": {
+  "file": "bollard.png",
+  "w": 41,
+  "h": 79,
+  "footX": 20
+ }
+}

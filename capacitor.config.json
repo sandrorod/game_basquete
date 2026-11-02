@@ -1,0 +1,6 @@
+{
+  "appId": "com.streetbasketball.fight",
+  "appName": "Street Basketball Fight",
+  "webDir": "dist",
+  "android": { "backgroundColor": "#000000" }
+}

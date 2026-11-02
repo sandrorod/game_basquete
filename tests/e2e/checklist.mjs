@@ -161,7 +161,8 @@ try {
 
   // ── Controles do computador: J, K (carregar), Shift ─────────────
   await play(page, 0);
-  await page.evaluate(() => { const w = window.__game.world; w.waves.forEach((x) => { x.spawned = true; x.cleared = true; x.queue = []; }); });
+  // o arremesso turbo (K) gasta a barra de poder: começa com 80%
+  await page.evaluate(() => { const w = window.__game.world; w.player.sp = 0.8; w.waves.forEach((x) => { x.spawned = true; x.cleared = true; x.queue = []; }); });
   await page.keyboard.down('KeyK');
   await page.waitForTimeout(900);
   const charging = await page.evaluate(() => ({ s: window.__game.world.player.state, c: window.__game.world.player.charge }));
@@ -180,7 +181,7 @@ try {
   await page.waitForTimeout(200);
   const resumed = await page.evaluate(() => window.__game.state);
   check(14, 'Os controles funcionam no computador', charging.s === 'charge' && charging.c > 0.5 && special === 'special' && strong === 'strong', `K segurado carrega (${Math.round(charging.c * 100)}%, estado ${charging.s}) e solta: ${special}; J: ${strong}`);
-  check(19, 'O sistema de pausa funciona', paused.s === 'paused' && paused.menu === 'PAUSED' && resumed === 'play', `ESC → ${paused.s} (menu "${paused.menu}") → ESC → ${resumed}`);
+  check(19, 'O sistema de pausa funciona', paused.s === 'paused' && paused.menu === 'PAUSA' && resumed === 'play', `ESC → ${paused.s} (menu "${paused.menu}") → ESC → ${resumed}`);
 
   // ── Vidas ───────────────────────────────────────────────────────
   const lives = await page.evaluate(() => {
@@ -198,14 +199,14 @@ try {
     return { before, after, respawned, state: g.state, screen: document.querySelector('#ui .big')?.textContent };
   });
   check(16, 'O sistema de vidas funciona', lives.after === lives.before - 1 && lives.respawned, `vidas ${lives.before} → ${lives.after}, volta com energia cheia`);
-  const goScreen = lives.state === 'gameover' && lives.screen === 'GAME OVER';
+  const goScreen = lives.state === 'gameover' && lives.screen === 'FIM DE JOGO';
 
   // ── Progressão e vitória (robô invencível no jogo inteiro) ───────
   const run = await page.evaluate(() => window.__runBot({ god: true, maxFramesPerStage: 60 * 60 * 10 }));
   const cleared = run.report.filter((x) => x.result === 'clear').length;
   const victoryText = await page.evaluate(() => document.querySelector('#ui .win')?.textContent ?? '');
   check(17, 'A progressão entre as fases funciona', cleared === 9 && run.finalState === 'victory', `${cleared} fases concluídas em sequência + chefe final (${run.report.map((x) => `F${x.stage} ${Math.round(x.frames / 3600 * 10) / 10}min`).join(', ')})`);
-  check(18, 'O jogo possui tela de vitória e GAME OVER', goScreen && /KING/.test(victoryText), `GAME OVER: ${goScreen ? 'ok' : 'falhou'} · vitória: "${victoryText.replace(/\s+/g, ' ').trim()}"`);
+  check(18, 'O jogo possui tela de vitória e GAME OVER', goScreen && /KING/.test(victoryText), `FIM DE JOGO: ${goScreen ? 'ok' : 'falhou'} · vitória: "${victoryText.replace(/\s+/g, ' ').trim()}"`);
   await page.screenshot({ path: path.join(import.meta.dirname, 'victory.png') });
   await page.close();
 
@@ -227,21 +228,70 @@ try {
     const returnDmg = hpBefore - mid.hp;
     mid.remove = true;
     for (let i = 0; i < 5; i++) g.update();
-    // turbo: sem poder não corre; com poder corre e gasta
+    // turbo da bola (K): sem poder não carrega; com poder carrega, arremessa e gasta
+    for (let i = 0; i < 120 && p.ball !== 'hand'; i++) g.update();
     p.sp = 0;
-    g.input.press('right'); g.input.press('run');
-    for (let i = 0; i < 30; i++) g.update();
-    const runWithout = p.state === 'run';
-    g.input.release('run'); g.update();
+    g.input.press('special'); g.update();
+    const chargeWithout = p.state === 'charge';
+    g.input.release('special');
+    for (let i = 0; i < 50; i++) g.update();
     p.sp = 0.6;
-    g.input.press('run');
-    for (let i = 0; i < 60; i++) g.update();
-    const runWith = p.state === 'run', spAfter = p.sp;
-    g.input.release('run'); g.input.release('right');
-    return { returnDmg, runWithout, runWith, spAfter };
+    g.input.press('special');
+    for (let i = 0; i < 40; i++) g.update();
+    const chargeWith = p.state === 'charge';
+    g.input.release('special');
+    for (let i = 0; i < 3; i++) g.update();
+    const turboBall = w.projectiles.find((q) => q.mainBall)?.power;
+    return { returnDmg, chargeWithout, chargeWith, turboBall, spAfter: p.sp };
   });
   check(21, 'A bola também causa dano quando volta', extra.returnDmg > 0, `inimigo no caminho de volta perdeu ${extra.returnDmg} de energia`);
-  check(22, 'O turbo usa a barra de poder', !extra.runWithout && extra.runWith && extra.spAfter < 0.55, `sem poder não corre; com 60% correu 1 s e ficou com ${Math.round(extra.spAfter * 100)}%`);
+  check(22, 'O turbo usa a barra de poder', !extra.chargeWithout && extra.chargeWith && extra.turboBall === 'special' && extra.spAfter < 0.45, `sem poder não carrega; com 60% arremessou (${extra.turboBall}) e ficou com ${Math.round(extra.spAfter * 100)}%`);
+
+  // ── Prêmios, loja, mochila, continue e ranking ──────────────────
+  const meta = await page.evaluate(() => {
+    const g = window.__game, w = g.world, p = w.player;
+    const out = {};
+    // prêmios: moeda dá dinheiro, coroa dá ficha, escudo bloqueia golpe
+    const m0 = g.save.money, c0 = g.save.continues;
+    for (const k of ['coin', 'crown', 'shield']) { w.dropPickup(k, p.x, p.y); w.pickups.at(-1).z = 0; w.pickups.at(-1).vz = 0; }
+    for (let i = 0; i < 3; i++) g.update();
+    out.coin = g.save.money - m0;
+    out.crown = g.save.continues - c0;
+    p.invuln = 0;
+    const hp0 = p.hp;
+    p.takeDamage(w, 20, false, 1);
+    out.shieldBlocked = p.hp === hp0;
+    // loja: compra a bola e o dano aumenta; mochila: tirar volta ao normal
+    g.save.money = 1000;
+    out.bought = g.buy('bola2');
+    out.dmgWith = p.dmgMul;
+    g.toggleEquip('bola2');
+    out.dmgWithout = p.dmgMul;
+    out.moneyLeft = g.save.money;
+    // continue: sem ficha volta para a fase 1; com ficha, mesma fase
+    g.save.continues = 0;
+    g.startStage(3); g.state = 'play'; g.world.lives = 1; g.world.score = 4321; g.world.onPlayerDown(); g.update();
+    out.noTokenUnlocked = g.save.unlocked;
+    out.noTokenButtons = [...document.querySelectorAll('#ui .btn')].map((b) => b.textContent).join(' | ');
+    g.save.continues = 1;
+    g.startStage(3); g.state = 'play'; g.world.lives = 1; g.world.score = 4321; g.world.onPlayerDown(); g.update();
+    out.recordForm = !!document.querySelector('#ui input.name');
+    g.useContinue();
+    out.continuedStage = g.stageIdx;
+    out.tokensLeft = g.save.continues;
+    return out;
+  });
+  check(23, 'Prêmios dos tambores funcionam', meta.coin > 0 && meta.crown === 1 && meta.shieldBlocked, `moeda +R$${meta.coin}, coroa +${meta.crown} ficha, escudo bloqueou: ${meta.shieldBlocked}`);
+  check(24, 'Loja e mochila mudam a jogabilidade', meta.bought && meta.dmgWith > meta.dmgWithout && meta.moneyLeft === 500, `comprou bola: dano ×${meta.dmgWith} → sem ela ×${meta.dmgWithout}; sobrou R$${meta.moneyLeft}`);
+  check(25, 'Continue só com ficha', !/Continuar nesta fase/.test(meta.noTokenButtons) && meta.noTokenUnlocked === 1 && meta.continuedStage === 3 && meta.tokensLeft === 0, `sem ficha: "${meta.noTokenButtons}"; com ficha continuou na fase ${meta.continuedStage + 1}`);
+  // ranking: grava o nome digitado
+  await page.evaluate(() => { const g = window.__game; g.save.ranking = []; g.startStage(0); g.state = 'play'; g.world.lives = 1; g.world.score = 9999; g.world.onPlayerDown(); g.update(); });
+  await page.waitForTimeout(150);
+  await page.fill('#ui input.name', 'Testador');
+  await page.click('#ui .save-rec');
+  await page.waitForTimeout(150);
+  const rank = await page.evaluate(() => ({ list: window.__game.save.ranking, table: document.querySelector('#ui .rank')?.textContent ?? '' }));
+  check(26, 'Ranking dos 10 maiores placares', meta.recordForm && rank.list[0]?.name === 'TESTADOR' && /TESTADOR/.test(rank.table), `recorde pede o nome; 1º lugar: ${rank.list[0]?.name} ${rank.list[0]?.score}`);
   await page.close();
 
   // ── Celular: controles de toque ─────────────────────────────────

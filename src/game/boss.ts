@@ -3,8 +3,8 @@ import { FLOOR_BOTTOM, FLOOR_TOP, W } from '../core/config';
 import { chance, clamp, rand, sign } from '../core/math';
 import { BOSSES, type BossDef, type BossMove } from '../data/bosses';
 import { BOSS_LOOKS } from '../data/looks';
-import { drawBall, drawFighter } from '../render/fighter';
-import { poseFor, type Anim } from '../render/poses';
+import { drawBall } from '../render/fighter';
+import { drawSprite, sprites, type Frame } from '../render/sprites';
 import type { Power } from './actor';
 import { Enemy } from './enemy';
 import { Projectile } from './projectile';
@@ -26,6 +26,8 @@ export class Boss extends Enemy {
   vanish = 0;
   bigHits = 0;
   index: number;
+  /** Quadros mostrando o toco */
+  blockT = 0;
 
   constructor(index: number, x: number, y: number, w: World) {
     super('heavy', x, y, w, BOSSES[index].name, index);
@@ -56,11 +58,12 @@ export class Boss extends Enemy {
   update(w: World) {
     this.tickTimers();
     if (this.cooldown > 0) this.cooldown--;
+    if (this.blockT > 0) this.blockT--;
     const p = w.player;
     const dx = p.x - this.x, dy = p.y - this.y;
     if (!this.enraged && this.hp < this.maxHp * 0.35 && this.state !== 'ko') {
       this.enraged = true;
-      w.fx.popup(this.x, this.y - 110 * this.scale, 'RAGE!', '#ff4d4d', 11);
+      w.fx.popup(this.x, this.y - 110 * this.scale, 'FÚRIA!', '#ff4d4d', 11);
       audio.sfx('boss');
     }
     const s = this.speed * this.mult;
@@ -302,10 +305,13 @@ export class Boss extends Enemy {
       total += v;
       return [m, v] as const;
     });
+    // imprevisível: às vezes ignora os pesos e sorteia qualquer golpe
+    if (this.bdef.chaos && chance(0.5)) total = weighted.reduce((a, [, v]) => a + (v > 0 ? 1 : 0), 0);
+    const flat = this.bdef.chaos && total === weighted.length;
     let r = Math.random() * total;
     let pickMove: BossMove = weighted[0][0];
     for (const [m, v] of weighted) {
-      r -= v;
+      r -= flat ? 1 : v;
       if (r <= 0) {
         pickMove = m;
         break;
@@ -337,7 +343,7 @@ export class Boss extends Enemy {
 
   private slamLand(w: World) {
     const p = w.player;
-    const R = 72 * Math.min(1.4, this.scale);
+    const R = 66 * Math.min(1.4, this.scale) * (this.bdef.slamPower ?? 1);
     w.fx.ring(this.x, this.y, R * 2, 'rgba(255,220,120,0.9)');
     w.fx.dust(this.x, this.y, 14);
     w.fx.shake = 10;
@@ -357,13 +363,23 @@ export class Boss extends Enemy {
     if (busy || proj.power === 'super') return;
     if (chance(this.bdef.dodge * (this.enraged ? 1.15 : 1))) {
       this.vy = this.y > (FLOOR_TOP + FLOOR_BOTTOM) / 2 ? -3.4 : 3.4;
-      w.fx.popup(this.x, this.y - 92 * this.scale, 'DODGE', '#c9b6ff', 7);
+      w.fx.popup(this.x, this.y - 92 * this.scale, 'DESVIOU', '#c9b6ff', 7);
       this.setState('dodge');
     }
   }
 
   receive(w: World, dmg: number, power: Power, dirX: number): 'block' | 'hit' | 'ko' {
     if (this.state === 'intro' || this.state === 'ko' || this.vanish > 0.5) return 'block';
+    // pivôs dão toco nos arremessos rápidos
+    const canBlock = ['think', 'approach', 'recover', 'retreat', 'align'].includes(this.state);
+    if (this.bdef.block && canBlock && (power === 'quick' || power === 'melee') && chance(this.bdef.block)) {
+      this.facing = sign(-dirX || 1) as 1 | -1;
+      this.blockT = 14;
+      w.fx.popup(this.x, this.y - 96 * this.scale, 'TOCO!', '#9fdcff', 8);
+      w.fx.hit(this.x + this.facing * 10, this.y, 60 * this.scale, false, '#9fdcff');
+      audio.sfx('block');
+      return 'block';
+    }
     let d = dmg;
     if (this.armor > 0 && power !== 'super') d = Math.round(dmg * (1 - this.armor * (power === 'quick' || power === 'melee' ? 1 : 0.5)));
     d = Math.max(1, d);
@@ -373,7 +389,7 @@ export class Boss extends Enemy {
       this.armor = 0;
       this.look = { ...this.look, armor: undefined };
       w.fx.debris(this.x, this.y, '#9aa3ad', 20);
-      w.fx.popup(this.x, this.y - 100 * this.scale, 'ARMOR BREAK!', '#ffd23f', 9);
+      w.fx.popup(this.x, this.y - 100 * this.scale, 'ARMADURA QUEBROU!', '#ffd23f', 9);
       audio.sfx('break');
     }
     if (this.hp <= 0) {
@@ -403,6 +419,116 @@ export class Boss extends Enemy {
     return 'hit';
   }
 
+  spriteFrames(): Frame[] {
+    return [sprites.bosses[this.bdef.sprite]];
+  }
+
+  get drawHeight() {
+    return 84 * this.scale;
+  }
+
+  /**
+   * Animação "de marionete" sobre a arte de corpo inteiro do chefe:
+   * balanço ao respirar/andar, inclinação nos golpes, giro nos chutes, achatamento na enterrada e queda no nocaute.
+   */
+  private pose(t: number) {
+    const st = this.st;
+    let rot = 0, sx = 1, sy = 1, lift = 0, dx = 0;
+    const walk = Math.abs(this.vx) + Math.abs(this.vy) > 0.3;
+    switch (this.state) {
+      case 'think':
+      case 'intro':
+      case 'recover':
+      case 'summon':
+      case 'retreat':
+      case 'align':
+        if (walk) {
+          lift = Math.abs(Math.sin(t * 0.25)) * 3;
+          rot = Math.sin(t * 0.25) * 0.04;
+        } else {
+          sy = 1 + Math.sin(t * 0.08) * 0.018;
+          sx = 1 - Math.sin(t * 0.08) * 0.01;
+        }
+        if (this.state === 'summon') {
+          sy = 1.05 + Math.sin(st * 0.4) * 0.02;
+          lift = 4;
+        }
+        break;
+      case 'approach':
+        lift = Math.abs(Math.sin(t * 0.32)) * 4;
+        rot = 0.08 + Math.sin(t * 0.32) * 0.04;
+        break;
+      case 'windup':
+      case 'dashWind':
+        rot = -0.14;
+        sx = 1.04;
+        sy = 0.95;
+        dx = -3;
+        break;
+      case 'jumpWind':
+        sy = 0.86;
+        sx = 1.1;
+        break;
+      case 'attack':
+        rot = st < 10 ? 0.22 : 0.1;
+        sx = st < 10 ? 1.1 : 1;
+        dx = st < 10 ? 8 : 3;
+        break;
+      case 'combo': {
+        const k = (st % 16) / 16;
+        if (this.bdef.spin && Math.floor(st / 16) === 2) {
+          // chute acrobático: giro completo
+          rot = k * Math.PI * 2;
+          lift = Math.sin(k * Math.PI) * 18;
+        } else {
+          rot = 0.18 * Math.sin(k * Math.PI);
+          dx = 7 * Math.sin(k * Math.PI);
+        }
+        break;
+      }
+      case 'dash':
+        rot = 0.26;
+        sx = 1.08;
+        sy = 0.96;
+        break;
+      case 'jump':
+        sy = 1.08;
+        sx = 0.94;
+        rot = -0.1 + Math.min(0.3, st * 0.012);
+        break;
+      case 'volley':
+        rot = this.st % 9 < 3 ? -0.08 : 0.03;
+        dx = this.st % 9 < 3 ? -3 : 0;
+        break;
+      case 'stagger':
+      case 'hurt':
+        rot = -0.22;
+        dx = -4;
+        break;
+      case 'dodge':
+        rot = -0.12;
+        sy = 0.94;
+        break;
+      case 'fall':
+        rot = -Math.min(1.45, (st / 14) * 1.45);
+        break;
+      case 'down':
+      case 'ko':
+        rot = -1.45;
+        break;
+      case 'getup':
+        rot = -1.45 * Math.max(0, 1 - st / 20);
+        break;
+    }
+    if (this.blockT > 0) {
+      // toco: estica o corpo para cima
+      sy = 1.08;
+      sx = 0.95;
+      lift = 6;
+    }
+    return { rot, sx, sy, lift, dx };
+  }
+
   draw(ctx: CanvasRenderingContext2D, camX: number, t: number) {
     const sx = this.x - camX, sy = this.y - this.z;
     // marca de pouso do salto
@@ -410,20 +536,14 @@ export class Boss extends Enemy {
       ctx.strokeStyle = Math.floor(t / 4) % 2 ? '#ff4d4d' : '#ffd23f';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.ellipse(this.target.x - camX, this.target.y, 30, 9, 0, 0, Math.PI * 2);
+      ctx.ellipse(this.target.x - camX, this.target.y, 30 * (this.bdef.slamPower ?? 1), 9 * (this.bdef.slamPower ?? 1), 0, 0, Math.PI * 2);
       ctx.stroke();
     }
-    const comboAnims: Anim[] = ['punch', 'kick', 'punch'];
-    const map: Record<string, Anim> = {
-      intro: this.st > 30 ? 'taunt' : 'walk', think: Math.abs(this.vx) + Math.abs(this.vy) > 0.3 ? 'walk' : 'idle', approach: 'run', windup: 'punchWind', attack: 'punch',
-      combo: this.st % 16 < 6 ? 'punchWind' : comboAnims[Math.min(2, Math.floor(this.st / 16))], align: 'walk', dashWind: 'guard', dash: 'dash', retreat: 'walk',
-      volley: this.st % 9 < 5 ? 'shootWind' : 'shoot', jumpWind: 'guard', jump: this.vz > 0 ? 'jump' : 'slam', vanish: 'guard', summon: 'taunt', stagger: 'hurt',
-      recover: 'idle', fall: this.hp <= 0 ? 'fall' : 'pushed', down: 'down', getup: 'getup', dodge: 'walk', ko: 'ko',
-    };
-    const anim = map[this.state] ?? 'idle';
-    const prog = this.state === 'fall' ? Math.min(1, this.st / 14) : this.state === 'getup' ? this.st / 22 : 0;
-    const ballMode = this.bdef.projectile === 'ball' && (this.state === 'volley' || this.state === 'retreat') ? 'hand' : 'none';
-    const pose = poseFor(anim, this.state === 'think' ? t : this.st, { progress: prog, expr: this.state === 'down' || this.state === 'ko' ? 'ko' : this.enraged ? 'angry' : 'focus', ball: ballMode });
+    const f = this.spriteFrames()[0];
+    if (!f) return;
+    const H = this.drawHeight;
+    const s = H / f.base;
+    const ps = this.pose(t);
     const alpha = (1 - this.vanish) * (this.state === 'ko' && this.st > 60 ? (Math.floor(this.st / 3) % 2 ? 0.3 : 1) : 1);
     // fúria: aura vermelha
     if (this.enraged && this.state !== 'ko') {
@@ -431,21 +551,36 @@ export class Boss extends Enemy {
       ctx.globalAlpha = 0.25 + Math.sin(t * 0.2) * 0.1;
       ctx.fillStyle = '#ff2a2a';
       ctx.beginPath();
-      ctx.ellipse(sx, sy - 40 * this.scale, 26 * this.scale, 46 * this.scale, 0, 0, Math.PI * 2);
+      ctx.ellipse(sx, sy - H * 0.5, H * 0.38, H * 0.58, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
-    // rastro do teleporte / investida
-    if (this.state === 'dash' || this.state === 'vanish') {
-      for (let i = 1; i <= 3; i++) drawFighter(ctx, sx - this.facing * i * 14, sy, this.look, pose, { facing: this.facing, scale: this.scale, alpha: 0.18 * (4 - i) * alpha });
+    const paint = (x: number, a: number, flash: boolean) => {
+      ctx.save();
+      ctx.translate(x + this.facing * ps.dx, sy - ps.lift);
+      // giro em torno do centro do corpo (chutes); inclinação em torno dos pés
+      const spinning = Math.abs(ps.rot) > 1.6;
+      if (spinning) {
+        ctx.translate(0, -H * 0.5);
+        ctx.rotate(ps.rot * this.facing);
+        ctx.translate(0, H * 0.5);
+      } else ctx.rotate(ps.rot * this.facing);
+      ctx.scale(ps.sx, ps.sy);
+      const face = this.bdef.face;
+      drawSprite(ctx, f, 0, 0, s, { facing: face === 0 ? 1 : this.facing * face, flash, alpha: a });
+      ctx.restore();
+    };
+    // rastro da investida / finta / teleporte
+    if (this.state === 'dash' || this.state === 'vanish' || (this.state === 'combo' && this.bdef.spin)) {
+      for (let i = 1; i <= 3; i++) paint(sx - this.facing * i * 14, 0.18 * (4 - i) * alpha, false);
     }
-    drawFighter(ctx, sx, sy, this.look, pose, { facing: this.facing, scale: this.scale, flash: this.flash > 0, alpha });
-    if (this.state === 'volley' && this.bdef.projectile === 'ball') drawBall(ctx, sx + this.facing * 8, sy - 80 * this.scale, 5, t * 0.3);
+    paint(sx, alpha, this.flash > 0);
+    if (this.state === 'volley' && this.bdef.projectile === 'ball') drawBall(ctx, sx + this.facing * 16, sy - H * 0.8, 5, t * 0.3);
     if ((this.state === 'windup' || this.state === 'dashWind' || this.state === 'jumpWind') && this.st % 8 < 4) {
       ctx.fillStyle = '#ff4d4d';
       ctx.font = 'bold 14px "Press Start 2P", monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('!!', sx, sy - 92 * this.scale);
+      ctx.fillText('!!', sx, sy - H - 10);
       ctx.textAlign = 'left';
     }
   }

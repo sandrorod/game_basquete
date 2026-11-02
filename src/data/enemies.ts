@@ -29,4 +29,6 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
   defender: { hp: 55, speed: 0.95, dmg: 8, reach: 34, scale: 1.06, score: 400, range: [26, 36], attack: 'punch', blockChance: 0.55, windup: 24, cooldown: 70 },
   biker: { hp: 40, speed: 4.6, dmg: 10, reach: 30, scale: 1, score: 450, range: [0, 0], attack: 'ride', windup: 40, cooldown: 160 },
   baller: { hp: 40, speed: 1.4, dmg: 9, reach: 32, scale: 1.02, score: 400, range: [130, 210], attack: 'shoot', projectile: 'ball', dodgeChance: 0.1, windup: 26, cooldown: 120 },
+  gangster: { hp: 48, speed: 1.05, dmg: 8, reach: 32, scale: 1.04, score: 450, range: [24, 34], attack: 'punch', blockChance: 0.2, windup: 24, cooldown: 70 },
+  knife: { hp: 28, speed: 1.9, dmg: 9, reach: 34, scale: 0.98, score: 400, range: [26, 38], attack: 'dash', dodgeChance: 0.2, windup: 18, cooldown: 60 },
 };

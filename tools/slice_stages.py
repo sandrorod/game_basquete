@@ -1,0 +1,20 @@
+"""Recorta os 10 cenários de art/stages-sheet.png em public/sprites/stages/stage_<n>.png.
+Ordem do modelo: coluna da esquerda = fases 1,3,5,7,9; coluna da direita = fases 2,4,6,8,10.
+Uso: python3 tools/slice_stages.py
+"""
+import os
+
+from PIL import Image
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+im = Image.open(os.path.join(ROOT, 'art', 'stages-sheet.png')).convert('RGB')
+ROWS = [(0, 200), (203, 376), (379, 546), (549, 728), (732, 941)]
+COLS = [(0, 834), (837, 1672)]
+OUT = os.path.join(ROOT, 'public', 'sprites', 'stages')
+os.makedirs(OUT, exist_ok=True)
+pad = 2
+for ci, (x0, x1) in enumerate(COLS):
+    for ri, (y0, y1) in enumerate(ROWS):
+        n = ri * 2 + ci + 1
+        im.crop((x0 + pad, y0 + pad, x1 - pad, y1 - pad)).save(os.path.join(OUT, f'stage_{n}.png'))
+print('ok')

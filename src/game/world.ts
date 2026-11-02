@@ -8,7 +8,9 @@ import { buildStageArt, FAR_PARALLAX, ART_SCALE, type StageArt } from '../render
 import { Effects } from '../render/effects';
 import { drawBall } from '../render/fighter';
 import { drawHud, text } from '../render/hud';
-import { drawPickup, drawProjectile, drawProp, drawTrafficCar, drawTrain, PROP_SIZE, type PickupKind } from '../render/props';
+import { drawPickup, drawProjectile, drawProp, drawPropSprite, drawTrafficCar, drawTrain, PROP_SIZE } from '../render/props';
+import { PICKUPS, rollPickup, type PickupKind } from '../data/items';
+import { NO_GEAR, type GearStats } from '../data/shop';
 import type { Power } from './actor';
 import { Boss } from './boss';
 import { Enemy } from './enemy';
@@ -71,6 +73,11 @@ export class World {
   startScore: number;
   spawnCd = 0;
   maxOnScreen: number;
+  /** Carteira e fichas (o próprio save: o que se ganha fica guardado) */
+  bank: { money: number; continues: number };
+  /** Dinheiro ganho nesta fase (mostrado no fim) */
+  earned = 0;
+  gear: GearStats;
   /** Último disparo de inimigo comum: evita chuva de projéteis de vários atiradores ao mesmo tempo */
   lastEnemyShot = -999;
 
@@ -95,13 +102,21 @@ export class World {
     },
   };
 
-  constructor(stageIndex: number, difficulty: Difficulty, carry: { score: number; lives: number; hp?: number; nextLifeAt: number }) {
+  constructor(
+    stageIndex: number,
+    difficulty: Difficulty,
+    carry: { score: number; lives: number; hp?: number; nextLifeAt: number; bank?: { money: number; continues: number }; gear?: GearStats },
+  ) {
+    this.bank = carry.bank ?? { money: 0, continues: 0 };
+    this.gear = carry.gear ?? NO_GEAR;
     this.stage = STAGES[stageIndex];
     this.stageN = this.stage.n;
     this.diff = DIFFICULTY[difficulty];
     this.art = buildStageArt(this.stage.theme, this.stage.length, 1000 + this.stageN * 77);
     this.player = new Player(90, 300);
-    if (carry.hp) this.player.hp = carry.hp;
+    this.player.gear = this.gear;
+    this.player.maxHp = 100 + this.gear.hp;
+    this.player.hp = carry.hp ? Math.min(this.player.maxHp, carry.hp) : this.player.maxHp;
     this.score = carry.score;
     this.startScore = carry.score;
     this.lives = carry.lives;
@@ -227,6 +242,14 @@ export class World {
     }
   }
 
+  /** Dinheiro: com bônus do boné, guardado direto na carteira */
+  earn(n: number, x: number, y: number, show = true) {
+    const v = Math.round(n * (1 + this.gear.money));
+    this.bank.money += v;
+    this.earned += v;
+    if (show) this.fx.popup(x, y, `+R$${v}`, '#7cff6b', 6);
+  }
+
   /** A bola (ou outro golpe do jogador) acertou um inimigo */
   hitEnemy(e: Enemy, dmg: number, power: Power, dirX: number, hx: number, hy: number, hz: number): boolean {
     const res = e.receive(this, dmg, power, dirX);
@@ -235,13 +258,13 @@ export class World {
     p.combo++;
     p.comboT = 100;
     p.bestCombo = Math.max(p.bestCombo, p.combo);
-    p.sp = Math.min(1, p.sp + (power === 'quick' || power === 'melee' ? 0.07 : power === 'super' ? 0 : 0.11));
+    p.sp = Math.min(1, p.sp + (power === 'quick' || power === 'melee' ? 0.07 : power === 'super' ? 0 : 0.11) * (1 + this.gear.power));
     const big = power !== 'quick' && power !== 'melee';
     this.fx.hit(hx, hy, hz, big || res === 'ko', power === 'super' ? '#38f6ff' : '#ffe66d');
     this.freeze(res === 'ko' ? 7 : big ? 5 : 3);
     audio.sfx(big ? 'bigHit' : 'hit');
     this.addScore(50 + (p.combo >= 3 ? p.combo * 30 : 0));
-    if (p.combo >= 3 && p.combo % 5 === 0) this.fx.popup(p.x, p.y - 95, `${p.combo} COMBO!`, '#ffd23f', 9);
+    if (p.combo >= 3 && p.combo % 5 === 0) this.fx.popup(p.x, p.y - 95, `COMBO ${p.combo}!`, '#ffd23f', 9);
     if (res === 'ko') this.onEnemyDefeated(e, false);
     return true;
   }
@@ -252,8 +275,9 @@ export class World {
     const pts = e.def.score * (1 + Math.floor(this.stageN / 3));
     this.addScore(pts);
     this.fx.popup(e.x, e.y - 70, `+${pts}`, '#ffffff', 7);
+    this.earn(3 + Math.floor(this.stageN / 2), e.x, e.y - 58);
     audio.sfx('enemyKo');
-    if (fell) this.fx.popup(e.x, e.y - 50, 'FELL!', '#ff8a3d', 7);
+    if (fell) this.fx.popup(e.x, e.y - 50, 'CAIU!', '#ff8a3d', 7);
   }
 
   private onBossDefeated(b: Boss) {
@@ -264,6 +288,7 @@ export class World {
     const pts = 5000 + this.stageN * 1000;
     this.addScore(pts);
     this.fx.popup(b.x, b.y - 120, `+${pts}`, '#ffd23f', 10);
+    this.earn(100 + this.stageN * 25, b.x, b.y - 104);
     void timeBonus;
     audio.sfx('bossKo');
     this.fx.flash = 14;
@@ -279,7 +304,7 @@ export class World {
     this.projectiles.push(p);
     this.player.ball = 'out';
     this.player.stolenT = 0;
-    this.fx.popup(x, y - 70, 'BALL BACK!', '#ffd23f', 7);
+    this.fx.popup(x, y - 70, 'BOLA DE VOLTA!', '#ffd23f', 7);
   }
 
   onPlayerDown() {
@@ -405,7 +430,7 @@ export class World {
           if (enemyProj) {
             enemyProj.remove = true;
             this.fx.hit(enemyProj.x, enemyProj.y, enemyProj.z, false, '#9fdcff');
-            this.fx.popup(enemyProj.x, enemyProj.y - 50, 'DEFLECT!', '#9fdcff', 7);
+            this.fx.popup(enemyProj.x, enemyProj.y - 50, 'REBATEU!', '#9fdcff', 7);
             audio.sfx('block');
             this.addScore(100);
             if (!pr.pierce) {
@@ -466,39 +491,70 @@ export class World {
       audio.sfx('break');
       this.addScore(100);
       this.fx.popup(o.x, o.y - 40, '+100', '#ffffff', 6);
-      const r = Math.random();
-      let drop: PickupKind | null = null;
-      if (r < 0.18) drop = 'chicken';
-      else if (r < 0.38) drop = 'burger';
-      else if (r < 0.55) drop = 'soda';
-      else if (r < 0.68) drop = 'star';
-      else if (r < 0.7) drop = 'oneup';
-      if (drop) this.pickups.push(new Pickup(drop, o.x, clamp(o.y + 4, FLOOR_TOP + 6, FLOOR_BOTTOM)));
+      // prêmio: 3 em cada 4 objetos quebrados soltam algo
+      if (Math.random() < 0.75) this.dropPickup(rollPickup(), o.x, o.y);
     }
+  }
+
+  dropPickup(kind: PickupKind, x: number, y: number) {
+    this.pickups.push(new Pickup(kind, x, clamp(y + 4, FLOOR_TOP + 6, FLOOR_BOTTOM), rand(-1.2, 1.2)));
   }
 
   private updatePickups() {
     const p = this.player;
+    const magnet = p.buffs.magnet > 0;
     for (const k of this.pickups) {
       k.t++;
-      if (Math.abs(k.x - p.x) < 16 && Math.abs(k.y - p.y) < 12 && p.z < 10 && !['ko', 'falling'].includes(p.state)) {
-        k.taken = true;
-        audio.sfx(k.kind === 'oneup' ? 'oneUp' : 'pickup');
-        const heal: Partial<Record<PickupKind, number>> = { chicken: 45, burger: 28, soda: 14 };
-        if (heal[k.kind]) {
-          p.hp = Math.min(p.maxHp, p.hp + heal[k.kind]!);
-          this.fx.popup(k.x, k.y - 30, `+${heal[k.kind]} HP`, '#7cff6b', 7);
-        } else if (k.kind === 'star') {
-          this.addScore(1000);
-          p.sp = Math.min(1, p.sp + 0.35);
-          this.fx.popup(k.x, k.y - 30, '+1000', '#ffd23f', 7);
-        } else if (k.kind === 'oneup') {
-          this.lives++;
-          this.fx.popup(k.x, k.y - 30, '1UP!', '#7cff6b', 10);
+      // pulinho ao sair do objeto
+      if (k.z > 0 || k.vz > 0) {
+        k.z += k.vz;
+        k.vz -= 0.3;
+        k.x += k.vx;
+        if (k.z <= 0) {
+          k.z = 0;
+          k.vz = 0;
+          k.vx = 0;
         }
+      }
+      // ímã: puxa os prêmios para o jogador
+      if (magnet && k.z === 0) {
+        const dx = p.x - k.x, dy = p.y - k.y, d = Math.hypot(dx, dy);
+        if (d < 260 && d > 1) {
+          k.x += (dx / d) * 4;
+          k.y += (dy / d) * 2.5;
+        }
+      }
+      if (Math.abs(k.x - p.x) < 16 && Math.abs(k.y - p.y) < 12 && k.z < 6 && p.z < 10 && !['ko', 'falling'].includes(p.state)) {
+        k.taken = true;
+        this.collect(k.kind, k.x, k.y);
       }
     }
     this.pickups = this.pickups.filter((k) => !k.taken && k.t < 900);
+  }
+
+  private collect(kind: PickupKind, x: number, y: number): void {
+    const p = this.player;
+    const d = PICKUPS[kind];
+    if (d.random) {
+      // presente: um prêmio surpresa (nunca outro presente)
+      let k: PickupKind = 'gift';
+      while (k === 'gift') k = rollPickup();
+      this.fx.popup(x, y - 44, 'SURPRESA!', d.color, 7);
+      return this.collect(k, x, y);
+    }
+    audio.sfx(d.oneUp || d.continueToken ? 'oneUp' : 'pickup');
+    let label = d.label;
+    if (d.heal) {
+      p.hp = Math.min(p.maxHp, p.hp + d.heal);
+      label = `+${d.heal} ENERGIA`;
+    }
+    if (d.power) p.sp = Math.min(1, p.sp + d.power);
+    if (d.points) this.addScore(d.points);
+    if (d.money) this.earn(d.money, x, y - 44);
+    if (d.oneUp) this.lives++;
+    if (d.continueToken) this.bank.continues++;
+    if (d.buff) p.buffs[d.buff] = d.buffT ?? 300;
+    this.fx.popup(x, y - 30, label, d.color, 7);
   }
 
   private hurtAll(test: (a: { x: number; y: number; z: number }) => boolean, dmg: number, hz: Hazard, dir: number) {
@@ -588,7 +644,7 @@ export class World {
         this.goT = 180;
         if (!p.tookDamage) {
           this.addScore(500);
-          this.fx.popup(p.x, p.y - 100, 'PERFECT +500', '#7cff6b', 8);
+          this.fx.popup(p.x, p.y - 100, 'PERFEITO +500', '#7cff6b', 8);
         }
       }
       return;
@@ -654,7 +710,7 @@ export class World {
     camX = Math.round(camX * 2) / 2;
     // cenário: fundo com paralaxe + rua
     const farX = camX * FAR_PARALLAX;
-    ctx.drawImage(this.art.far, farX * ART_SCALE, 0, W * ART_SCALE, FLOOR_TOP * ART_SCALE, 0, 0, W, FLOOR_TOP);
+    if (!this.art.panel) ctx.drawImage(this.art.far, farX * ART_SCALE, 0, W * ART_SCALE, FLOOR_TOP * ART_SCALE, 0, 0, W, FLOOR_TOP);
     ctx.drawImage(this.art.near, camX * ART_SCALE, 0, W * ART_SCALE, H * ART_SCALE, 0, 0, W, H);
     this.art.live?.(ctx, camX, t);
     if (scene) {
@@ -696,9 +752,9 @@ export class World {
       if (c >= hz.period - 140 && c < hz.period - 60 && Math.floor(t / 8) % 2 === 0) {
         ctx.fillStyle = 'rgba(255,40,40,0.22)';
         ctx.fillRect(0, FLOOR_TOP, W, 30);
-        text(ctx, '! TRAIN !', W / 2, FLOOR_TOP + 20, 10, '#ff4d4d', 'center');
+        text(ctx, '! TREM !', W / 2, FLOOR_TOP + 20, 10, '#ff4d4d', 'center');
       }
-      if (c >= hz.period - 60) drawTrain(ctx, hz.x - camX, FLOOR_TOP + 28, 900);
+
     }
     for (const hz of this.hazards) {
       if (hz.kind !== 'traffic') continue;
@@ -706,7 +762,7 @@ export class World {
       if (c >= hz.period - 140 && c < hz.period - 70 && Math.floor(t / 8) % 2 === 0) {
         ctx.fillStyle = 'rgba(255,230,120,0.25)';
         ctx.fillRect(0, hz.y - 14, W, 20);
-        text(ctx, hz.dir === 1 ? '◂ CAR' : 'CAR ▸', hz.dir === 1 ? 30 : W - 30, hz.y, 8, '#ffd23f', 'center');
+        text(ctx, hz.dir === 1 ? '◂ CARRO' : 'CARRO ▸', hz.dir === 1 ? 30 : W - 30, hz.y, 8, '#ffd23f', 'center');
       }
     }
 
@@ -728,9 +784,9 @@ export class World {
     const list: D[] = [];
     for (const o of this.obstacles) {
       if (o.broken || o.x - camX < -80 || o.x - camX > W + 80) continue;
-      list.push({ y: o.y, draw: () => drawProp(ctx, o.kind, o.x - camX, o.y, o.flash > 0, o.hitT, o.accent) });
+      list.push({ y: o.y, draw: () => drawPropSprite(ctx, o.kind, o.x - camX, o.y, o.flash > 0, o.hitT, o.id) || drawProp(ctx, o.kind, o.x - camX, o.y, o.flash > 0, o.hitT, o.accent) });
     }
-    for (const k of this.pickups) list.push({ y: k.y, draw: () => drawPickup(ctx, k.kind, k.x - camX, k.y, k.t) });
+    for (const k of this.pickups) list.push({ y: k.y, draw: () => drawPickup(ctx, k.kind, k.x - camX, k.y - k.z, k.t, 900 - k.t) });
     for (const e of this.enemies) list.push({ y: e.y, draw: () => e.draw(ctx, camX, t) });
     list.push({ y: this.player.y + 0.1, draw: () => this.player.draw(ctx, camX, t) });
     for (const pr of this.projectiles) {
@@ -743,6 +799,7 @@ export class World {
       });
     }
     for (const hz of this.hazards) {
+      if (hz.kind === 'train' && hz.t % hz.period >= hz.period - 60) list.push({ y: FLOOR_TOP + 30, draw: () => drawTrain(ctx, hz.x - camX, FLOOR_TOP + 30, 900) });
       if (hz.kind === 'traffic' && hz.t % hz.period >= hz.period - 70) list.push({ y: hz.y, draw: () => drawTrafficCar(ctx, hz.x - camX, hz.y, hz.dir, '#d62828') });
     }
     list.sort((a, b) => a.y - b.y);
@@ -761,7 +818,8 @@ export class World {
     const boss = this.boss && this.bossPhase !== 'none' ? this.boss : null;
     drawHud(ctx, {
       hp: p.hp / p.maxHp, hpTrail: p.trail, sp: p.sp, score: this.score, lives: this.lives, stage: this.stageN, stageName: this.stage.name,
-      combo: p.combo, comboT: p.comboT, ballReady: p.ball === 'hand', charge: p.state === 'charge' ? p.charge : 0, turbo: p.running && p.state === 'run', go: this.goT > 0 && this.bossPhase === 'none', t,
+      money: this.bank.money, continues: this.bank.continues, buffs: p.buffs,
+      combo: p.combo, comboT: p.comboT, ballReady: p.ball === 'hand', charge: p.state === 'charge' ? p.charge : 0, turbo: p.state === 'charge', go: this.goT > 0 && this.bossPhase === 'none', t,
       boss: boss ? { name: boss.name, hp: boss.hp / boss.maxHp, trail: boss.trail, enraged: boss.enraged } : undefined,
     });
 
@@ -773,7 +831,7 @@ export class World {
       ctx.fillStyle = '#ff2a2a';
       ctx.fillRect(0, H / 2 - 50, W * k, 3);
       ctx.fillRect(W * (1 - k), H / 2 + 47, W * k, 3);
-      text(ctx, 'WARNING!', W / 2, H / 2 - 22, 10, Math.floor(t / 6) % 2 ? '#ff2a2a' : '#ffd23f', 'center');
+      text(ctx, 'ATENÇÃO!', W / 2, H / 2 - 22, 10, Math.floor(t / 6) % 2 ? '#ff2a2a' : '#ffd23f', 'center');
       text(ctx, this.boss.name, W / 2 + (1 - k) * 300, H / 2 + 8, 22, '#ffffff', 'center', 5);
       text(ctx, this.boss.bdef.title.toUpperCase(), W / 2, H / 2 + 26, 7, '#ffd23f', 'center');
       text(ctx, `"${this.boss.bdef.line}"`, W / 2, H / 2 + 40, 6, '#cfe9ff', 'center');
