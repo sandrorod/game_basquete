@@ -4,7 +4,7 @@ import type { Input } from '../core/input';
 import { clamp } from '../core/math';
 import { HERO } from '../data/looks';
 import { NO_GEAR, type GearStats } from '../data/shop';
-import { drawHeroSprite } from '../render/spriteAnim';
+import { drawHeroSprite, TRICK_AFTER, TRICK_CYCLE } from '../render/spriteAnim';
 import { Actor } from './actor';
 import { resolveObstacles } from './obstacle';
 import { Projectile } from './projectile';
@@ -40,6 +40,8 @@ export class Player extends Actor {
   god = false;
   /** Bônus dos itens equipados (mochila) */
   gear: GearStats = NO_GEAR;
+  /** Quadros parado com a bola, sem mexer nos controles (truques depois de 10 s) */
+  idleT = 0;
   /** Efeitos temporários dos prêmios (quadros restantes) */
   buffs = { shield: 0, glove: 0, rocket: 0, magnet: 0 };
 
@@ -93,7 +95,11 @@ export class Player extends Actor {
         const moving = Math.abs(this.vx) > 0.25 || Math.abs(this.vy) > 0.25;
         this.setState(!moving ? 'idle' : this.running ? 'run' : 'walk');
         if (this.running && this.st % 14 === 0) w.fx.dust(this.x - this.facing * 6, this.y, 2);
-        if (this.state === 'idle' && this.ball === 'hand' && this.st % 40 === 20) audio.sfx('dribble');
+        const still = this.state === 'idle' && this.ball === 'hand' && ax.x === 0 && ax.y === 0;
+        this.idleT = still ? this.idleT + 1 : 0;
+        if (this.state === 'idle' && this.ball === 'hand' && this.st % 40 === 20 && this.idleT < TRICK_AFTER) audio.sfx('dribble');
+        // passagem entre as pernas: som da bola quicando
+        if (this.idleT >= TRICK_AFTER && (this.idleT - TRICK_AFTER) % TRICK_CYCLE < 108 && (this.idleT - TRICK_AFTER) % 18 === 9) audio.sfx('dribble');
 
         // Ataques
         const wantThrow = input.wasPressed('throw') || this.bufferedThrow > 0;
@@ -388,7 +394,7 @@ export class Player extends Actor {
       ctx,
       this.x - camX,
       this.y - this.z + drop,
-      { state: this.state, st: this.st, t, vx: this.vx, vy: this.vy, facing: this.facing, hasBall: this.ball === 'hand', quick: this.throwKind === 'quick', hp: this.hp },
+      { state: this.state, st: this.st, t, vx: this.vx, vy: this.vy, facing: this.facing, hasBall: this.ball === 'hand', quick: this.throwKind === 'quick', hp: this.hp, idleT: this.state === 'idle' ? this.idleT : 0 },
       { flash: this.flash > 0, alpha, scale },
     );
   }

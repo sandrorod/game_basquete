@@ -438,5 +438,100 @@
    "footX": 36,
    "base": 38
   }
+ ],
+ "legs": [
+  {
+   "file": "legs_0.png",
+   "w": 204,
+   "h": 285,
+   "footX": 99,
+   "base": 285
+  },
+  {
+   "file": "legs_1.png",
+   "w": 237,
+   "h": 260,
+   "footX": 118,
+   "base": 260
+  },
+  {
+   "file": "legs_2.png",
+   "w": 243,
+   "h": 235,
+   "footX": 121,
+   "base": 235
+  },
+  {
+   "file": "legs_3.png",
+   "w": 239,
+   "h": 252,
+   "footX": 119,
+   "base": 252
+  },
+  {
+   "file": "legs_4.png",
+   "w": 210,
+   "h": 274,
+   "footX": 104,
+   "base": 274
+  },
+  {
+   "file": "legs_5.png",
+   "w": 189,
+   "h": 273,
+   "footX": 93,
+   "base": 273
+  }
+ ],
+ "spin": [
+  {
+   "file": "spin_0.png",
+   "w": 181,
+   "h": 350,
+   "footX": 81,
+   "base": 350
+  },
+  {
+   "file": "spin_1.png",
+   "w": 214,
+   "h": 354,
+   "footX": 87,
+   "base": 354
+  },
+  {
+   "file": "spin_2.png",
+   "w": 210,
+   "h": 370,
+   "footX": 110,
+   "base": 370
+  },
+  {
+   "file": "spin_3.png",
+   "w": 227,
+   "h": 379,
+   "footX": 114,
+   "base": 379
+  },
+  {
+   "file": "spin_4.png",
+   "w": 221,
+   "h": 378,
+   "footX": 126,
+   "base": 378
+  },
+  {
+   "file": "spin_5.png",
+   "w": 180,
+   "h": 386,
+   "footX": 98,
+   "base": 386
+  },
+  {
+   "file": "spin_6.png",
+   "w": 188,
+   "h": 386,
+   "footX": 105,
+   "base": 386
+  }
  ]
 }

@@ -25,10 +25,33 @@ export interface HeroPoseInput {
   hasBall: boolean;
   quick: boolean;
   hp: number;
+  /** Quadros parado com a bola (depois de 10 s, faz truques) */
+  idleT?: number;
+}
+
+/** Parado por 10 s com a bola: começa a sequência de truques */
+export const TRICK_AFTER = 600;
+const LEGS_PASS = 36;
+const LEGS_TOTAL = LEGS_PASS * 3;
+const SPIN_IN = 35, SPIN_HOLD = 150;
+export const TRICK_CYCLE = LEGS_TOTAL + SPIN_IN * 2 + SPIN_HOLD + 60;
+
+/** Truque da vez: passagem entre as pernas (3 vezes), depois a bola girando no dedo; repete */
+function trickFrame(H: Record<string, Frame[]>, idleT: number): Frame | null {
+  if (!H.legs?.length || !H.spin?.length) return null;
+  const t = (idleT - TRICK_AFTER) % TRICK_CYCLE;
+  if (t < LEGS_TOTAL) return H.legs[Math.floor(((t % LEGS_PASS) / LEGS_PASS) * H.legs.length)];
+  const u = t - LEGS_TOTAL;
+  const n = H.spin.length;
+  if (u < SPIN_IN) return H.spin[Math.min(n - 3, Math.floor((u / SPIN_IN) * (n - 2)))];
+  // bola girando no dedo: alterna os dois últimos quadros
+  if (u < SPIN_IN + SPIN_HOLD) return H.spin[n - 2 + (Math.floor((u - SPIN_IN) / 8) % 2)];
+  if (u < SPIN_IN * 2 + SPIN_HOLD) return H.spin[Math.max(0, n - 3 - Math.floor(((u - SPIN_IN - SPIN_HOLD) / SPIN_IN) * (n - 2)))];
+  return null;
 }
 
 /** Quadro do herói para o estado atual (os quadros do modelo olham para a direita) */
-export function heroFrame(p: HeroPoseInput): { f: Frame; rot?: number; ball?: boolean } {
+export function heroFrame(p: HeroPoseInput): { f: Frame; rot?: number; ball?: boolean; trick?: boolean } {
   const H = heroSet ?? sprites.hero;
   const s = p.st;
   switch (p.state) {
@@ -64,7 +87,11 @@ export function heroFrame(p: HeroPoseInput): { f: Frame; rot?: number; ball?: bo
       return { f: H.celebrate[3] };
     case 'celebrate':
       return { f: cyc(H.celebrate, p.t, 8) };
-    default:
+    default: {
+      // parado há mais de 10 s com a bola: truques (os quadros já trazem a bola)
+      const tf = p.hasBall && (p.idleT ?? 0) >= TRICK_AFTER ? trickFrame(H, p.idleT!) : null;
+      if (tf) return { f: tf, trick: true };
+    }
       // parado: alterna as duas poses de frente
       return { f: H.idle[Math.floor(p.t / 40) % 2 === 0 ? 0 : 3], ball: true };
   }
@@ -77,7 +104,8 @@ export function heroScale() {
 /** Desenha o herói (com a bola quicando quando está com ela e se movendo/parado) */
 export function drawHeroSprite(ctx: CanvasRenderingContext2D, x: number, y: number, p: HeroPoseInput, o: { flash?: boolean; alpha?: number; scale?: number } = {}) {
   const r = heroFrame(p);
-  const s = heroScale() * (o.scale ?? 1);
+  // os truques vêm de outra folha: escala pela pose de pé dela (mesma altura do herói)
+  const s = (r.trick ? (HERO_HEIGHT * 1.08) / (heroSet ?? sprites.hero).spin[0].h : heroScale()) * (o.scale ?? 1);
   drawSprite(ctx, r.f, x, y, s, { facing: p.facing, flash: o.flash, alpha: o.alpha });
   if (r.ball && p.hasBall) {
     // drible: a bola sobe e desce ao lado do corpo
