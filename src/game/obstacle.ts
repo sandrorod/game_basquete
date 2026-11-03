@@ -12,6 +12,8 @@ export class Obstacle {
   broken = false;
   hitT = 0;
   flash = 0;
+  /** Hidrante atingido: jorrando água (quadros desde que abriu; 0 = fechado) */
+  spray = 0;
   accent: string;
   id = Math.random();
 

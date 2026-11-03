@@ -1,4 +1,4 @@
-import { H, W } from '../core/config';
+import { H, SIZE, W } from '../core/config';
 import { drawHeroSprite } from './spriteAnim';
 import { sprites } from './sprites';
 
@@ -68,7 +68,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, d: HudData) {
   ctx.fill();
   ctx.clip();
   // retrato: o rosto do STREET PLAYER (quadro parado do modelo, ampliado)
-  drawHeroSprite(ctx, 24, 120, { state: d.hp < 0.25 ? 'hurt' : 'idle', st: 20, t: 0, vx: 0, vy: 0, facing: 1, hasBall: false, quick: true, hp: 100 }, { scale: 1.3 });
+  drawHeroSprite(ctx, 24, 120, { state: d.hp < 0.25 ? 'hurt' : 'idle', st: 20, t: 0, vx: 0, vy: 0, facing: 1, hasBall: false, quick: true, hp: 100 }, { scale: 1.3 / SIZE });
   ctx.restore();
   ctx.strokeStyle = '#ffd23f';
   ctx.lineWidth = 1.5;

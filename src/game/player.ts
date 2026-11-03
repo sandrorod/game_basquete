@@ -1,5 +1,5 @@
 import { audio } from '../core/audio';
-import { FLOOR_BOTTOM, FLOOR_TOP } from '../core/config';
+import { FLOOR_BOTTOM, FLOOR_TOP, SIZE } from '../core/config';
 import type { Input } from '../core/input';
 import { clamp } from '../core/math';
 import { HERO } from '../data/looks';
@@ -56,6 +56,7 @@ export class Player extends Actor {
   constructor(x: number, y: number) {
     super(x, y, 100, HERO);
     this.name = 'STREET PLAYER';
+    this.scale = SIZE;
   }
 
   /** Caído, nocauteado ou fora de controle (não pode ter a bola roubada) */
@@ -309,7 +310,7 @@ export class Player extends Actor {
   private fireSuper(w: World) {
     for (const dy of [-44, -22, 0, 22, 44]) {
       const y = clamp(this.y + dy, FLOOR_TOP + 6, FLOOR_BOTTOM - 2);
-      const p = new Projectile({ x: this.x + this.facing * 14, y, z: 40, vx: 9 * this.facing, kind: 'ball', fromPlayer: true, dmg: Math.round(30 * this.dmgMul), power: 'super', range: 520, laneTol: 16, maxLife: 90 });
+      const p = new Projectile({ x: this.x + this.facing * 14, y, z: 40 * SIZE, vx: 9 * this.facing, kind: 'ball', fromPlayer: true, dmg: Math.round(30 * this.dmgMul), power: 'super', range: 520, laneTol: 16, maxLife: 90 });
       p.pierce = true;
       p.glow = '#38f6ff';
       w.projectiles.push(p);

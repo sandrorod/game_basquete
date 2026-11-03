@@ -5,6 +5,8 @@ export const H = 360;
 export const FLOOR_TOP = 236;
 export const FLOOR_BOTTOM = 348;
 export const STEP = 1 / 60;
+/** Tamanho de personagens e objetos do cenário (1 = original; 1,2 = 20% maiores) */
+export const SIZE = 1.2;
 
 export type Difficulty = 'easy' | 'normal' | 'hard';
 

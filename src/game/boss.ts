@@ -1,5 +1,5 @@
 import { audio } from '../core/audio';
-import { FLOOR_BOTTOM, FLOOR_TOP, W } from '../core/config';
+import { FLOOR_BOTTOM, FLOOR_TOP, SIZE, W } from '../core/config';
 import { chance, clamp, rand, sign } from '../core/math';
 import { BOSSES, type BossDef, type BossMove } from '../data/bosses';
 import { BOSS_LOOKS } from '../data/looks';
@@ -35,7 +35,7 @@ export class Boss extends Enemy {
     this.bdef = BOSSES[index];
     this.isBoss = true;
     this.look = BOSS_LOOKS[index];
-    this.scale = this.bdef.scale;
+    this.scale = this.bdef.scale * SIZE;
     const hp = Math.round(this.bdef.hp * w.diff.enemyHp);
     this.hp = hp;
     this.maxHp = hp;
@@ -343,7 +343,7 @@ export class Boss extends Enemy {
 
   private slamLand(w: World) {
     const p = w.player;
-    const R = 66 * Math.min(1.4, this.scale) * (this.bdef.slamPower ?? 1);
+    const R = 66 * Math.min(1.4, this.bdef.scale) * SIZE * (this.bdef.slamPower ?? 1);
     w.fx.ring(this.x, this.y, R * 2, 'rgba(255,220,120,0.9)');
     w.fx.dust(this.x, this.y, 14);
     w.fx.shake = 10;
@@ -575,7 +575,7 @@ export class Boss extends Enemy {
       for (let i = 1; i <= 3; i++) paint(sx - this.facing * i * 14, 0.18 * (4 - i) * alpha, false);
     }
     paint(sx, alpha, this.flash > 0);
-    if (this.state === 'volley' && this.bdef.projectile === 'ball') drawBall(ctx, sx + this.facing * 16, sy - H * 0.8, 5, t * 0.3);
+    if (this.state === 'volley' && this.bdef.projectile === 'ball') drawBall(ctx, sx + this.facing * 16, sy - H * 0.8, 5 * SIZE, t * 0.3);
     if ((this.state === 'windup' || this.state === 'dashWind' || this.state === 'jumpWind') && this.st % 8 < 4) {
       ctx.fillStyle = '#ff4d4d';
       ctx.font = 'bold 14px "Press Start 2P", monospace';

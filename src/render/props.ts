@@ -1,4 +1,5 @@
 import { PICKUPS, type PickupKind } from '../data/items';
+import { SIZE } from '../core/config';
 import { shade } from '../core/math';
 import type { ProjKind } from '../data/bosses';
 import type { PropKind } from '../data/stages';
@@ -44,6 +45,13 @@ export const PROP_SIZE: Record<PropKind, { w: number; h: number; fw: number; fd:
   moto: { w: 84, h: 52, fw: 78, fd: 14, hp: 0, solid: true },
   bike: { w: 74, h: 46, fw: 68, fd: 10, hp: 10, solid: true },
 };
+// tudo 20% maior (SIZE), inclusive a área que bloqueia a passagem
+for (const s of Object.values(PROP_SIZE)) {
+  s.w = Math.round(s.w * SIZE);
+  s.h = Math.round(s.h * SIZE);
+  s.fw = Math.round(s.fw * SIZE);
+  s.fd = Math.round(s.fd * SIZE);
+}
 
 /**
  * Obstáculos desenhados com os sprites do modelo: variações e altura na tela.
@@ -78,7 +86,7 @@ export function drawPropSprite(ctx: CanvasRenderingContext2D, kind: PropKind, x:
   const i = Math.abs(Math.floor(seed * 1000)) % def.names.length;
   const f = sprites.props[def.names[i]];
   if (!f) return false;
-  const s = def.h[i] / f.h;
+  const s = (def.h[i] * SIZE) / f.h;
   drawSprite(ctx, f, x + (dmg > 0 ? Math.sin(dmg * 9) * dmg * 1.5 : 0), y, s, { flash });
   return true;
 }
@@ -388,8 +396,60 @@ export function drawPickup(ctx: CanvasRenderingContext2D, kind: PickupKind, x: n
   ctx.fill();
   ctx.shadowColor = d.color;
   ctx.shadowBlur = 6 + Math.sin(t * 0.2) * 3;
-  const s = d.size / Math.max(f.w, f.h);
+  const s = (d.size * SIZE) / Math.max(f.w, f.h);
   ctx.drawImage(f.img, x - (f.w * s) / 2, y - 4 + bob - f.h * s, f.w * s, f.h * s);
+  ctx.restore();
+}
+
+/**
+ * Jato d'água do hidrante aberto: coluna subindo (sobe aos poucos ao abrir), gotas caindo em arco
+ * para os dois lados e uma poça que cresce no chão.
+ */
+export function drawWaterJet(ctx: CanvasRenderingContext2D, x: number, groundY: number, topY: number, t: number) {
+  const grow = Math.min(1, t / 20);
+  const jetH = (78 + Math.sin(t * 0.3) * 6) * SIZE * grow;
+  const nozzle = topY + 4;
+  ctx.save();
+  // poça
+  const pool = Math.min(1, t / 240);
+  ctx.fillStyle = 'rgba(120,190,255,0.28)';
+  ctx.beginPath();
+  ctx.ellipse(x, groundY + 2, (16 + 34 * pool) * SIZE, (4 + 7 * pool) * SIZE, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // coluna principal (balança um pouco)
+  const sway = Math.sin(t * 0.17) * 2;
+  const g = ctx.createLinearGradient(0, nozzle, 0, nozzle - jetH);
+  g.addColorStop(0, 'rgba(230,245,255,0.95)');
+  g.addColorStop(0.7, 'rgba(160,215,255,0.8)');
+  g.addColorStop(1, 'rgba(160,215,255,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(x - 5 * SIZE, nozzle);
+  ctx.quadraticCurveTo(x - 8 * SIZE + sway, nozzle - jetH * 0.6, x - 15 * SIZE + sway, nozzle - jetH);
+  ctx.lineTo(x + 15 * SIZE + sway, nozzle - jetH);
+  ctx.quadraticCurveTo(x + 8 * SIZE + sway, nozzle - jetH * 0.6, x + 5 * SIZE, nozzle);
+  ctx.closePath();
+  ctx.fill();
+  // gotas: sobem com o jato e caem em arco
+  for (let i = 0; i < 44; i++) {
+    const life = 46;
+    const k = ((t + i * 7) % life) / life;
+    const side = i % 2 ? 1 : -1;
+    const spread = (0.6 + ((i * 37) % 10) / 10) * SIZE;
+    const dx = side * spread * k * 34;
+    const dy = -jetH * (1.9 * k - 1.3 * k * k) * 0.95;
+    const yy = nozzle + dy;
+    if (yy > groundY) continue;
+    ctx.fillStyle = i % 3 ? 'rgba(200,232,255,0.9)' : 'rgba(255,255,255,0.95)';
+    ctx.fillRect(x + dx + sway * (1 - k), yy, 2.5 * SIZE, 3.5 * SIZE);
+  }
+  // espuma no topo
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  for (let i = 0; i < 6; i++) {
+    ctx.beginPath();
+    ctx.arc(x + sway + Math.sin(t * 0.4 + i * 1.7) * 11 * SIZE, nozzle - jetH + 2 + Math.cos(t * 0.5 + i) * 3, 3.5 * SIZE, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.restore();
 }
 
@@ -532,9 +592,9 @@ export function drawBike(ctx: CanvasRenderingContext2D, x: number, y: number, fa
 }
 
 /** Trem do metrô passando na faixa de trás (proporcional: bem mais alto que o jogador) */
-export const TRAIN_CAR = 340;
+export const TRAIN_CAR = Math.round(340 * SIZE);
 export function drawTrain(ctx: CanvasRenderingContext2D, x: number, y: number, length: number) {
-  const Hh = 170;
+  const Hh = 170 * SIZE;
   for (let i = 0; i < length; i += TRAIN_CAR) {
     const cx = x + i;
     const front = i === 0;
@@ -654,7 +714,7 @@ export function drawTrafficCar(ctx: CanvasRenderingContext2D, x: number, y: numb
   ctx.translate(x, y);
   ctx.scale(facing, 1);
   const carSprite = sprites.loaded ? sprites.props.car_blue : undefined;
-  if (carSprite) drawSprite(ctx, carSprite, 0, 0, 66 / carSprite.h);
+  if (carSprite) drawSprite(ctx, carSprite, 0, 0, (66 * SIZE) / carSprite.h);
   else drawProp(ctx, 'car', 0, 0, false, 0, color);
   // farol aceso
   const g = ctx.createLinearGradient(58, -18, 160, -18);

@@ -1,5 +1,5 @@
 import { audio } from '../core/audio';
-import type { Difficulty } from '../core/config';
+import { SIZE, type Difficulty } from '../core/config';
 import { addRank, writeSave, type SaveData } from '../core/save';
 import { describe, gearStats, money, SHOP, SLOT_NAMES, type ShopItem, type Slot } from '../data/shop';
 import { STAGES } from '../data/stages';
@@ -405,7 +405,7 @@ export class Screens {
       ctx.ellipse(180, 420, 70, 14, 0, 0, Math.PI * 2);
       ctx.fill();
       const anim = Math.floor(t / 240) % 2 ? 'celebrate' : 'idle';
-      drawHeroSprite(ctx, 180, 418, { state: anim, st: t, t, vx: 0, vy: 0, facing: 1, hasBall: true, quick: true, hp: 100 }, { scale: 4.2 });
+      drawHeroSprite(ctx, 180, 418, { state: anim, st: t, t, vx: 0, vy: 0, facing: 1, hasBall: true, quick: true, hp: 100 }, { scale: 4.2 / SIZE });
       this.heroRaf = requestAnimationFrame(frame);
     };
     frame();

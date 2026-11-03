@@ -1,5 +1,5 @@
 import { audio } from '../core/audio';
-import { H, W } from '../core/config';
+import { H, SIZE, W } from '../core/config';
 import type { Input } from '../core/input';
 import { rankPosition, writeSave, type SaveData } from '../core/save';
 import { gearStats, itemById } from '../data/shop';
@@ -264,7 +264,7 @@ export class Game {
       ctx.beginPath();
       ctx.ellipse(W * 0.74, 322, 60, 12, 0, 0, Math.PI * 2);
       ctx.fill();
-      drawHeroSprite(ctx, W * 0.74, 320, { state: 'celebrate', st: t, t, vx: 0, vy: 0, facing: -1, hasBall: false, quick: true, hp: 100 }, { scale: 2.2 });
+      drawHeroSprite(ctx, W * 0.74, 320, { state: 'celebrate', st: t, t, vx: 0, vy: 0, facing: -1, hasBall: false, quick: true, hp: 100 }, { scale: 2.2 / SIZE });
       this.victoryFx.draw(ctx, 0);
       return;
     }

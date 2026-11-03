@@ -1,5 +1,5 @@
 import { audio } from '../core/audio';
-import { DIFFICULTY, FLOOR_BOTTOM, FLOOR_TOP, H, W, type Difficulty } from '../core/config';
+import { DIFFICULTY, FLOOR_BOTTOM, FLOOR_TOP, H, SIZE, W, type Difficulty } from '../core/config';
 import type { Input } from '../core/input';
 import { clamp, rand, rng, sign } from '../core/math';
 import type { EnemyKind } from '../data/looks';
@@ -8,7 +8,7 @@ import { buildStageArt, FAR_PARALLAX, ART_SCALE, type StageArt } from '../render
 import { Effects } from '../render/effects';
 import { drawBall } from '../render/fighter';
 import { drawHud, text } from '../render/hud';
-import { drawPickup, drawProjectile, drawProp, drawPropSprite, drawTrafficCar, drawTrain, PROP_SIZE } from '../render/props';
+import { drawPickup, drawProjectile, drawProp, drawPropSprite, drawTrafficCar, drawTrain, drawWaterJet, PROP_SIZE } from '../render/props';
 import { PICKUPS, rollPickup, type PickupKind } from '../data/items';
 import { NO_GEAR, type GearStats } from '../data/shop';
 import type { Power } from './actor';
@@ -350,6 +350,7 @@ export class World {
     this.updateHazards();
     for (const o of this.obstacles) {
       if (o.hitT > 0) o.hitT -= 0.1;
+      if (o.spray) o.spray++;
       if (o.flash > 0) o.flash--;
     }
     this.enemies = this.enemies.filter((e) => {
@@ -370,7 +371,7 @@ export class World {
       pr.spin += 0.35 * sign(pr.vx || 1);
       if (pr.returning) {
         // volta para a mão do jogador
-        const tx = p.x + p.facing * 8, ty = p.y, tz = 40;
+        const tx = p.x + p.facing * 8, ty = p.y, tz = 40 * SIZE;
         const dx = tx - pr.x, dy = ty - pr.y, dz = tz - pr.z;
         const d = Math.hypot(dx, dy * 1.5, dz) || 1;
         const sp = Math.min(13, 6 + pr.life * 0.15);
@@ -443,6 +444,25 @@ export class World {
         }
         if (!pr.returning && !pr.remove) {
           for (const o of this.obstacles) {
+            // hidrante: a bola abre o registro e a água jorra para cima
+            if (o.kind === 'hydrant' && !o.broken) {
+              const f = o.footprint();
+              if (pr.x > f.x0 - 4 && pr.x < f.x1 + 4 && pr.y > f.y0 - 8 && pr.y < f.y1 + 8 && pr.z < o.size.h + 18) {
+                o.hitT = 1;
+                o.flash = 4;
+                if (!o.spray) {
+                  o.spray = 1;
+                  audio.sfx('break');
+                  this.fx.popup(o.x, o.y - 50, 'SPLASH!', '#9fdcff', 7);
+                } else audio.sfx('hit');
+                if (pr.mainBall) {
+                  pr.returning = true;
+                  pr.life = 0;
+                } else pr.remove = true;
+                break;
+              }
+              continue;
+            }
             if (o.broken || !o.breakable) continue;
             const f = o.footprint();
             // a bola vai na altura do peito: acerta também obstáculos baixos (caixas, lixeiras, cones)
@@ -597,7 +617,7 @@ export class World {
             hz.hitIds.clear();
           }
           hz.x += hz.dir * 15;
-          this.hurtAll((a) => Math.abs(a.y - hz.y) < 16 && Math.abs(a.x - hz.x) < 60 && a.z < 30, 14, hz, hz.dir);
+          this.hurtAll((a) => Math.abs(a.y - hz.y) < 16 && Math.abs(a.x - hz.x) < 60 * SIZE && a.z < 30, 14, hz, hz.dir);
         }
       } else if (hz.kind === 'steam') {
         if (c === 160) hz.hitIds.clear();
@@ -774,9 +794,9 @@ export class World {
       ctx.ellipse(x - camX, y + 1, r * k, r * 0.32 * k, 0, 0, Math.PI * 2);
       ctx.fill();
     };
-    shadow(this.player.x, this.player.y, 15, this.player.z);
+    shadow(this.player.x, this.player.y, 15 * SIZE, this.player.z);
     for (const e of this.enemies) if (!(e.isBoss && (e as Boss).vanish > 0.6)) shadow(e.x, e.y, e.drawShadowR(), e.z);
-    for (const pr of this.projectiles) shadow(pr.x, pr.y, 6, pr.z);
+    for (const pr of this.projectiles) shadow(pr.x, pr.y, 6 * SIZE, pr.z);
     this.fx.drawGround(ctx, camX);
 
     // tudo ordenado pela profundidade (quem está mais embaixo aparece na frente)
@@ -785,6 +805,7 @@ export class World {
     for (const o of this.obstacles) {
       if (o.broken || o.x - camX < -80 || o.x - camX > W + 80) continue;
       list.push({ y: o.y, draw: () => drawPropSprite(ctx, o.kind, o.x - camX, o.y, o.flash > 0, o.hitT, o.id) || drawProp(ctx, o.kind, o.x - camX, o.y, o.flash > 0, o.hitT, o.accent) });
+      if (o.spray) list.push({ y: o.y + 0.05, draw: () => drawWaterJet(ctx, o.x - camX, o.y, o.y - o.size.h * 0.9, o.spray) });
     }
     for (const k of this.pickups) list.push({ y: k.y, draw: () => drawPickup(ctx, k.kind, k.x - camX, k.y - k.z, k.t, 900 - k.t) });
     for (const e of this.enemies) list.push({ y: e.y, draw: () => e.draw(ctx, camX, t) });
@@ -793,7 +814,7 @@ export class World {
       list.push({
         y: pr.y + 0.2,
         draw: () => {
-          if (pr.kind === 'ball') drawBall(ctx, pr.x - camX, pr.y - pr.z, pr.power === 'super' ? 8 : pr.power === 'special' ? 7 : 6, pr.spin, pr.glow ?? (pr.fromPlayer ? undefined : '#ff4d4d'));
+          if (pr.kind === 'ball') drawBall(ctx, pr.x - camX, pr.y - pr.z, (pr.power === 'super' ? 8 : pr.power === 'special' ? 7 : 6) * SIZE, pr.spin, pr.glow ?? (pr.fromPlayer ? undefined : '#ff4d4d'));
           else drawProjectile(ctx, pr.kind, pr.x - camX, pr.y - pr.z, this.t, sign(pr.vx));
         },
       });

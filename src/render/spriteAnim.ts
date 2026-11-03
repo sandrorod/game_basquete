@@ -1,9 +1,10 @@
+import { SIZE } from '../core/config';
 import type { EnemyKind } from '../data/looks';
 import { drawBall } from './fighter';
 import { drawSprite, sprites, variant, type Frame } from './sprites';
 
 /** Altura do herói na tela (unidades lógicas) */
-export const HERO_HEIGHT = 88;
+export const HERO_HEIGHT = 88 * SIZE;
 
 /** Quadros do herói com a cor da camiseta equipada */
 let heroSet: Record<string, Frame[]> | null = null;
@@ -111,8 +112,8 @@ export function drawHeroSprite(ctx: CanvasRenderingContext2D, x: number, y: numb
     // drible: a bola sobe e desce ao lado do corpo
     const cyc2 = (p.t % 30) / 30;
     const k = cyc2 < 0.5 ? cyc2 * 2 : 2 - cyc2 * 2;
-    const top = y - 34 * (o.scale ?? 1);
-    drawBall(ctx, x + p.facing * 15 * (o.scale ?? 1), top + (y - 6 - top) * k, 5.5 * (o.scale ?? 1), p.t * 0.3);
+    const top = y - 34 * SIZE * (o.scale ?? 1);
+    drawBall(ctx, x + p.facing * 15 * SIZE * (o.scale ?? 1), top + (y - 6 - top) * k, 5.5 * SIZE * (o.scale ?? 1), p.t * 0.3);
   }
 }
 

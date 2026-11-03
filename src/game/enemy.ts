@@ -1,5 +1,5 @@
 import { audio } from '../core/audio';
-import { FLOOR_BOTTOM, FLOOR_TOP, W } from '../core/config';
+import { FLOOR_BOTTOM, FLOOR_TOP, SIZE, W } from '../core/config';
 import { chance, clamp, rand, sign } from '../core/math';
 import { ENEMIES, type EnemyDef } from '../data/enemies';
 import { enemyLook, type EnemyKind } from '../data/looks';
@@ -60,7 +60,7 @@ export class Enemy extends Actor {
     this.kind = kind;
     this.def = def;
     this.name = label ?? ENEMY_NAMES[kind];
-    this.scale = def.scale;
+    this.scale = def.scale * SIZE;
     this.dmg = Math.round(def.dmg * (1 + 0.05 * (st - 1)) * w.diff.enemyDmg);
     this.shotDmg = Math.round(def.dmg * (1 + 0.035 * (st - 1)) * w.diff.enemyDmg);
     this.speed = def.speed * (1 + 0.035 * (st - 1));
@@ -496,7 +496,7 @@ export class Enemy extends Actor {
 
   /** Altura na tela (unidades lógicas) */
   get drawHeight() {
-    return this.kind === 'biker' && (this.state === 'ride' || this.state === 'rideWait') ? 72 : 84 * this.scale;
+    return this.kind === 'biker' && (this.state === 'ride' || this.state === 'rideWait') ? 72 * SIZE : 84 * this.scale;
   }
 
   draw(ctx: CanvasRenderingContext2D, camX: number, t: number) {
@@ -517,7 +517,7 @@ export class Enemy extends Actor {
       ctx.arc(sx + this.facing * f.w * s * 0.62, sy - H * 0.66, 5 - this.st, 0, Math.PI * 2);
       ctx.fill();
     }
-    if (this.holdingBall) drawBall(ctx, sx + this.facing * 12, sy - H * 0.5, 6, t * 0.2);
+    if (this.holdingBall) drawBall(ctx, sx + this.facing * 12, sy - H * 0.5, 6 * SIZE, t * 0.2);
     if (this.state === 'windup' && this.st % 8 < 4) {
       // aviso de ataque
       ctx.fillStyle = '#ffdd33';
