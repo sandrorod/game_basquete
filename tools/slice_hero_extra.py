@@ -17,9 +17,10 @@ OUT = os.path.join(ROOT, 'public', 'sprites', 'hero')
 SHEETS = {
     'hero-tricks-sheet.png': [[('look', 6)], [('legs', 6)], [('spin', 6)]],
     'hero-dribble-sheet.png': [[('dribble', 7)], [('walk', 8)], [('walk', 5), ('turn', 4)]],
+    'hero-run-sheet.png': [[('rundrib', 7)], [('rundrib', 6)], [('rundrib', 6)]],
 }
 # linhas desenhadas em outro tamanho na folha: o quadro mais alto da linha fica da altura do herói parado
-FIT_ROWS = {('hero-dribble-sheet.png', 1), ('hero-dribble-sheet.png', 2)}
+FIT_ROWS = {('hero-dribble-sheet.png', 1), ('hero-dribble-sheet.png', 2), ('hero-run-sheet.png', 0), ('hero-run-sheet.png', 1), ('hero-run-sheet.png', 2)}
 
 
 def key(cell):
@@ -116,6 +117,6 @@ for sheet, rows in SHEETS.items():
                 a = rgba[:, :, 3] > 0
                 cols = np.nonzero(a[int(a.shape[0] * 0.85):].any(0))[0]
                 lst.append({'file': fn, 'w': int(rgba.shape[1]), 'h': int(rgba.shape[0]), 'footX': int((cols.min() + cols.max()) / 2), 'base': int(round((ground - by0) * row_scale))})
-for name in ('look', 'legs', 'spin', 'dribble', 'walk', 'turn'):
+for name in ('look', 'legs', 'spin', 'dribble', 'walk', 'turn', 'rundrib'):
     print(name, len(meta[name]), [(f['w'], f['h']) for f in meta[name]][:3])
 json.dump(meta, open(os.path.join(OUT, 'hero.json'), 'w'), indent=1)

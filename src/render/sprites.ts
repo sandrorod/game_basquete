@@ -10,9 +10,11 @@ export interface Frame {
   footX: number;
   /** Distância do topo do quadro até a linha do chão do modelo (pés no ar ficam acima dela) */
   base: number;
+  /** Drible: [x da bola, altura da mão acima do chão, raio], em pixels do quadro (tools/dribble_ball.py) */
+  ball?: [number, number, number];
 }
 
-interface FrameInfo { file: string; w: number; h: number; footX: number; base?: number }
+interface FrameInfo { file: string; w: number; h: number; footX: number; base?: number; ball?: [number, number, number] }
 
 const BASE = `${import.meta.env.BASE_URL}sprites/`;
 
@@ -56,7 +58,7 @@ function whiteOf(img: CanvasImageSource, w: number, h: number) {
 
 async function frame(dir: string, f: FrameInfo): Promise<Frame> {
   const img = await loadImage(`${BASE}${dir}/${f.file}`);
-  return { img, white: whiteOf(img, f.w, f.h), w: f.w, h: f.h, footX: f.footX ?? f.w / 2, base: f.base ?? f.h };
+  return { img, white: whiteOf(img, f.w, f.h), w: f.w, h: f.h, footX: f.footX ?? f.w / 2, base: f.base ?? f.h, ball: f.ball };
 }
 
 export async function loadSprites() {
@@ -118,7 +120,7 @@ export function zoneVariant(key: string, base: Frame[], z: Zones) {
       d[i + 2] = b;
     }
     x.putImageData(data, 0, 0);
-    return { img: c, white: f.white, w: f.w, h: f.h, footX: f.footX, base: f.base };
+    return { img: c, white: f.white, w: f.w, h: f.h, footX: f.footX, base: f.base, ball: f.ball };
   });
   sprites.variants[key] = out;
   return out;
@@ -152,7 +154,7 @@ export function variant(key: string, base: Frame[], o: { hue?: number; sat?: num
       d[i + 2] = b;
     }
     x.putImageData(data, 0, 0);
-    return { img: c, white: f.white, w: f.w, h: f.h, footX: f.footX, base: f.base };
+    return { img: c, white: f.white, w: f.w, h: f.h, footX: f.footX, base: f.base, ball: f.ball };
   });
   sprites.variants[key] = out;
   return out;

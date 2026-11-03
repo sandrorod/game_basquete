@@ -4,7 +4,7 @@ import type { Input } from '../core/input';
 import { clamp } from '../core/math';
 import { HERO } from '../data/looks';
 import { NO_GEAR, type GearStats } from '../data/shop';
-import { drawHeroSprite, TRICK_AFTER, TRICK_CYCLE, trickBouncing } from '../render/spriteAnim';
+import { DRIBBLE, drawHeroSprite, TRICK_AFTER, TRICK_CYCLE, trickBouncing } from '../render/spriteAnim';
 import { Actor } from './actor';
 import { resolveObstacles } from './obstacle';
 import { Projectile } from './projectile';
@@ -103,7 +103,9 @@ export class Player extends Actor {
         if (this.running && this.st % 14 === 0) w.fx.dust(this.x - this.facing * 6, this.y, 2);
         const still = this.state === 'idle' && this.ball === 'hand' && ax.x === 0 && ax.y === 0;
         this.idleT = still ? this.idleT + 1 : 0;
-        if (this.state === 'idle' && this.ball === 'hand' && this.st % 21 === 15 && this.idleT < TRICK_AFTER) audio.sfx('dribble');
+        // som do quique: quando a bola desenhada no drible bate no chão (meio do ciclo)
+        const period = this.state === 'idle' ? DRIBBLE.idle : this.state === 'walk' ? DRIBBLE.walk : DRIBBLE.run;
+        if (this.ball === 'hand' && this.idleT < TRICK_AFTER && w.t % period === Math.floor(period / 2)) audio.sfx('dribble');
         // passagem entre as pernas: som da bola quicando
         if (this.idleT >= TRICK_AFTER && trickBouncing((this.idleT - TRICK_AFTER) % TRICK_CYCLE) && (this.idleT - TRICK_AFTER) % 18 === 9) audio.sfx('dribble');
 
