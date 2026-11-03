@@ -4,7 +4,7 @@ import type { Input } from '../core/input';
 import { clamp } from '../core/math';
 import { HERO } from '../data/looks';
 import { NO_GEAR, type GearStats } from '../data/shop';
-import { drawHeroSprite, TRICK_AFTER, TRICK_CYCLE } from '../render/spriteAnim';
+import { drawHeroSprite, TRICK_AFTER, TRICK_CYCLE, trickBouncing } from '../render/spriteAnim';
 import { Actor } from './actor';
 import { resolveObstacles } from './obstacle';
 import { Projectile } from './projectile';
@@ -103,9 +103,9 @@ export class Player extends Actor {
         if (this.running && this.st % 14 === 0) w.fx.dust(this.x - this.facing * 6, this.y, 2);
         const still = this.state === 'idle' && this.ball === 'hand' && ax.x === 0 && ax.y === 0;
         this.idleT = still ? this.idleT + 1 : 0;
-        if (this.state === 'idle' && this.ball === 'hand' && this.st % 40 === 20 && this.idleT < TRICK_AFTER) audio.sfx('dribble');
+        if (this.state === 'idle' && this.ball === 'hand' && this.st % 21 === 15 && this.idleT < TRICK_AFTER) audio.sfx('dribble');
         // passagem entre as pernas: som da bola quicando
-        if (this.idleT >= TRICK_AFTER && (this.idleT - TRICK_AFTER) % TRICK_CYCLE < 108 && (this.idleT - TRICK_AFTER) % 18 === 9) audio.sfx('dribble');
+        if (this.idleT >= TRICK_AFTER && trickBouncing((this.idleT - TRICK_AFTER) % TRICK_CYCLE) && (this.idleT - TRICK_AFTER) % 18 === 9) audio.sfx('dribble');
 
         // Ataques
         const wantThrow = input.wasPressed('throw') || this.bufferedThrow > 0;

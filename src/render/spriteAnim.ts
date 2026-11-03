@@ -40,29 +40,33 @@ export interface HeroPoseInput {
 
 /** Parado por 10 s com a bola: começa a sequência de truques */
 export const TRICK_AFTER = 600;
-const LEGS_PASS = 40;
-const LEGS_TOTAL = LEGS_PASS * 3;
-const SPIN_IN = 35, SPIN_HOLD = 150;
-export const TRICK_CYCLE = LEGS_TOTAL + SPIN_IN * 2 + SPIN_HOLD + 60;
+/** Partes da sequência (quadros): olha para a câmera batendo bola, entre as pernas (3 vezes), bola no dedo */
+const LOOK = 72;
+const LEGS_PASS = 36;
+const LEGS = LEGS_PASS * 3;
+const SPIN_IN = 20, SPIN_HOLD = 160, SPIN_OUT = 20, REST = 30;
+export const TRICK_CYCLE = LOOK + LEGS + SPIN_IN + SPIN_HOLD + SPIN_OUT + REST;
+/** Trechos da sequência em que a bola quica no chão (som do drible) */
+export const trickBouncing = (u: number) => u < LOOK + LEGS;
 
 /**
- * Truque da vez (parado há 10 s): passa a bola entre as pernas (3 vezes), depois sobe a bola e roda no dedo; repete.
+ * Truques (parado há 10 s, folha art/hero-tricks-sheet.png): olha para a câmera batendo bola,
+ * passa a bola entre as pernas 3 vezes, sobe a bola e roda no dedo; repete.
  */
 function trickFrame(H: Record<string, Frame[]>, idleT: number): Frame | null {
-  if (!H.legs?.length || !H.spin?.length) return null;
+  if (!H.look?.length || !H.legs?.length || !H.spin?.length) return null;
   const t = (idleT - TRICK_AFTER) % TRICK_CYCLE;
-  if (t < LEGS_TOTAL) {
-    const seq = [0, 1, 2, 1];
-    return H.legs[seq[Math.floor(((t % LEGS_PASS) / LEGS_PASS) * seq.length)]];
-  }
-  const u = t - LEGS_TOTAL;
-  if (u < SPIN_IN) return H.legs[3];
-  if (u < SPIN_IN + SPIN_HOLD) {
-    const k = u - SPIN_IN;
-    return k < 14 ? H.stand[0] : H.spin[Math.floor(k / 6) % 2];
-  }
-  if (u < SPIN_IN * 2 + SPIN_HOLD) return H.stand[0];
-  return null;
+  if (t < LOOK) return cyc(H.look, t, 6);
+  let u = t - LOOK;
+  if (u < LEGS) return H.legs[Math.floor(((u % LEGS_PASS) / LEGS_PASS) * H.legs.length)];
+  u -= LEGS;
+  if (u < SPIN_IN) return H.spin[Math.min(1, Math.floor(u / 10))];
+  u -= SPIN_IN;
+  // bola girando no dedo: quadros 2–5 em ciclo
+  if (u < SPIN_HOLD) return H.spin[2 + (Math.floor(u / 5) % 4)];
+  u -= SPIN_HOLD;
+  if (u < SPIN_OUT) return H.spin[1 - Math.min(1, Math.floor(u / 10))];
+  return H.dribble ? cyc(H.dribble, t, 6) : null;
 }
 
 /** Quadro do herói para o estado atual (folha art/hero-sheet.png; os quadros olham para a direita) */
@@ -73,7 +77,7 @@ export function heroFrame(p: HeroPoseInput): { f: Frame; trick?: boolean } {
   switch (p.state) {
     case 'walk':
       // andando batendo bola (a bola já vem desenhada); sem bola: os passos da corrida, mais devagar
-      return { f: p.hasBall ? cyc(H.walk, p.t, 7) : cyc(H.run, p.t, 6) };
+      return { f: p.hasBall ? cyc(H.walk, p.t, 5) : cyc(H.run, p.t, 6) };
     case 'run':
       // correndo: com a bola, drible baixo; sem bola, corrida
       return { f: p.hasBall ? cyc(H.cross, p.t, 5) : cyc(H.run, p.t, 3) };
@@ -108,7 +112,7 @@ export function heroFrame(p: HeroPoseInput): { f: Frame; trick?: boolean } {
       const tf = p.hasBall && (p.idleT ?? 0) >= TRICK_AFTER ? trickFrame(H, p.idleT!) : null;
       if (tf) return { f: tf, trick: true };
       // parado com a bola: bate bola na frente do corpo; sem bola: parado de lado
-      if (p.hasBall) return { f: Math.floor(p.t / 20) % 2 ? H.legs[0] : H.idle[0] };
+      if (p.hasBall) return { f: cyc(H.dribble, p.t, 6) };
       return { f: H.walknb[0] };
     }
   }
