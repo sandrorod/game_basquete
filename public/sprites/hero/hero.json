@@ -341,28 +341,28 @@
    "file": "look_2.png",
    "w": 141,
    "h": 304,
-   "footX": 72,
+   "footX": 73,
    "base": 304
   },
   {
    "file": "look_3.png",
    "w": 137,
    "h": 304,
-   "footX": 69,
+   "footX": 67,
    "base": 304
   },
   {
    "file": "look_4.png",
    "w": 152,
    "h": 305,
-   "footX": 72,
+   "footX": 71,
    "base": 305
   },
   {
    "file": "look_5.png",
    "w": 151,
    "h": 304,
-   "footX": 72,
+   "footX": 69,
    "base": 304
   }
  ],
@@ -422,35 +422,35 @@
    "file": "spin_1.png",
    "w": 145,
    "h": 318,
-   "footX": 73,
+   "footX": 74,
    "base": 318
   },
   {
    "file": "spin_2.png",
    "w": 166,
    "h": 319,
-   "footX": 82,
+   "footX": 83,
    "base": 319
   },
   {
    "file": "spin_3.png",
    "w": 177,
    "h": 318,
-   "footX": 85,
+   "footX": 84,
    "base": 318
   },
   {
    "file": "spin_4.png",
    "w": 179,
    "h": 318,
-   "footX": 84,
-   "base": 318
+   "footX": 85,
+   "base": 319
   },
   {
    "file": "spin_5.png",
    "w": 177,
    "h": 333,
-   "footX": 83,
+   "footX": 84,
    "base": 333
   }
  ],
@@ -471,8 +471,8 @@
    "file": "dribble_1.png",
    "w": 144,
    "h": 305,
-   "footX": 64,
-   "base": 305,
+   "footX": 62,
+   "base": 304,
    "ball": [
     117.0,
     180.2,
@@ -483,8 +483,8 @@
    "file": "dribble_2.png",
    "w": 153,
    "h": 304,
-   "footX": 69,
-   "base": 304,
+   "footX": 70,
+   "base": 303,
    "ball": [
     125.4,
     179.6,
@@ -495,7 +495,7 @@
    "file": "dribble_3.png",
    "w": 171,
    "h": 304,
-   "footX": 73,
+   "footX": 69,
    "base": 304,
    "ball": [
     143.4,
@@ -508,7 +508,7 @@
    "w": 174,
    "h": 304,
    "footX": 67,
-   "base": 304,
+   "base": 303,
    "ball": [
     147.0,
     179.6,
@@ -519,8 +519,8 @@
    "file": "dribble_5.png",
    "w": 159,
    "h": 304,
-   "footX": 73,
-   "base": 304,
+   "footX": 67,
+   "base": 303,
    "ball": [
     131.4,
     179.6,
@@ -531,8 +531,8 @@
    "file": "dribble_6.png",
    "w": 148,
    "h": 304,
-   "footX": 62,
-   "base": 304,
+   "footX": 66,
+   "base": 303,
    "ball": [
     120.6,
     179.6,
