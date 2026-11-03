@@ -21,7 +21,6 @@ export interface PickupDef {
   buffT?: number;
   oneUp?: boolean;
   continueToken?: boolean;
-  random?: boolean;
   color: string;
 }
 
@@ -36,7 +35,7 @@ export const PICKUPS: Record<PickupKind, PickupDef> = {
   heart: { label: 'CORAÇÃO', size: 17, w: 5, heal: 50, color: '#ff6b6b' },
   lightning: { label: 'RAIO', size: 18, w: 6, power: 0.5, color: '#ffd23f' },
   trophy: { label: 'TROFÉU', size: 19, w: 3, points: 3000, money: 25, color: '#ffd23f' },
-  gift: { label: 'PRESENTE', size: 18, w: 4, random: true, color: '#ff8ad8' },
+  gift: { label: 'PRESENTE', size: 18, w: 4, money: 25, heal: 20, color: '#ff8ad8' },
   medkit: { label: 'KIT MÉDICO', size: 17, w: 3, heal: 100, color: '#7cff6b' },
   potion_blue: { label: 'POÇÃO AZUL', size: 19, w: 3, buff: 'shield', buffT: 360, color: '#38f6ff' },
   potion_purple: { label: 'POÇÃO ROXA', size: 19, w: 3, power: 1, color: '#c9b6ff' },
@@ -47,6 +46,10 @@ export const PICKUPS: Record<PickupKind, PickupDef> = {
   shield: { label: 'ESCUDO', size: 19, w: 2, buff: 'shield', buffT: 480, color: '#7cff6b' },
   magnet: { label: 'ÍMÃ', size: 18, w: 2, buff: 'magnet', buffT: 900, color: '#ff6b6b' },
 };
+
+/** Tempo no chão até sumir (10 s); nos últimos 3 s ele pisca */
+export const PICKUP_LIFE = 600;
+export const PICKUP_BLINK = 180;
 
 /** Sorteia um prêmio pelos pesos */
 export function rollPickup(r = Math.random()): PickupKind {

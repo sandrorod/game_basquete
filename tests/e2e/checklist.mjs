@@ -277,7 +277,10 @@ try {
     out.moneyLeft = g.save.money;
     // continue: sem ficha volta para a fase 1; com ficha, mesma fase
     g.save.continues = 0;
+    g.save.money = 777; g.save.owned = ['bola2']; g.save.equipped = { bola: 'bola2' };
     g.startStage(3); g.state = 'play'; g.world.lives = 1; g.world.score = 4321; g.world.onPlayerDown(); g.update();
+    out.resetMoney = g.save.money;
+    out.resetBag = g.save.owned.length + Object.keys(g.save.equipped).length;
     out.noTokenUnlocked = g.save.unlocked;
     out.noTokenButtons = [...document.querySelectorAll('#ui .btn')].map((b) => b.textContent).join(' | ');
     g.save.continues = 1;
@@ -290,7 +293,7 @@ try {
   });
   check(23, 'Prêmios dos tambores funcionam', meta.coin > 0 && meta.crown === 1 && meta.shieldBlocked, `moeda +R$${meta.coin}, coroa +${meta.crown} ficha, escudo bloqueou: ${meta.shieldBlocked}`);
   check(24, 'Loja e mochila mudam a jogabilidade', meta.bought && meta.dmgWith > meta.dmgWithout && meta.moneyLeft === 500, `comprou bola: dano ×${meta.dmgWith} → sem ela ×${meta.dmgWithout}; sobrou R$${meta.moneyLeft}`);
-  check(25, 'Continue só com ficha', !/Continuar nesta fase/.test(meta.noTokenButtons) && meta.noTokenUnlocked === 1 && meta.continuedStage === 3 && meta.tokensLeft === 0, `sem ficha: "${meta.noTokenButtons}"; com ficha continuou na fase ${meta.continuedStage + 1}`);
+  check(25, 'Continue só com ficha; fim das vidas zera dinheiro e mochila', !/Continuar nesta fase/.test(meta.noTokenButtons) && meta.noTokenUnlocked === 1 && meta.continuedStage === 3 && meta.tokensLeft === 0 && meta.resetMoney === 0 && meta.resetBag === 0, `vidas zeradas: dinheiro R$${meta.resetMoney}, mochila ${meta.resetBag} itens; sem ficha: "${meta.noTokenButtons}"; com ficha continuou na fase ${meta.continuedStage + 1}`);
   // ranking: grava o nome digitado
   await page.evaluate(() => { const g = window.__game; g.save.ranking = []; g.startStage(0); g.state = 'play'; g.world.lives = 1; g.world.score = 9999; g.world.onPlayerDown(); g.update(); });
   await page.waitForTimeout(150);

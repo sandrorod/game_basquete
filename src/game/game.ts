@@ -1,11 +1,11 @@
 import { audio } from '../core/audio';
-import { H, SIZE, W } from '../core/config';
+import { H, HERO_SIZE, SIZE, W } from '../core/config';
 import type { Input } from '../core/input';
 import { rankPosition, writeSave, type SaveData } from '../core/save';
-import { gearStats, itemById } from '../data/shop';
+import { gearLook, gearStats, itemById } from '../data/shop';
 import { STAGES } from '../data/stages';
 import { text } from '../render/hud';
-import { drawHeroSprite, setHeroOutfit } from '../render/spriteAnim';
+import { drawHeroSprite, setBallColor, setHeroOutfit } from '../render/spriteAnim';
 import { buildStageArt, drawNear, FAR_PARALLAX, ART_SCALE, type StageArt } from '../render/backgrounds';
 import { Effects } from '../render/effects';
 import { World } from './world';
@@ -30,6 +30,8 @@ export class Game {
   bonus = { time: 0, health: 0, flawless: 0, combo: 0, total: 0 };
   /** Dinheiro ganho na fase que acabou de terminar */
   stageMoney = 0;
+  /** Conta os fins de jogo (o nome só pode ser gravado uma vez em cada um) */
+  endCount = 0;
   /** Energia levada para a próxima fase (depois da loja) */
   private nextHp = 100;
   private titleArt: StageArt | null = null;
@@ -37,13 +39,16 @@ export class Game {
 
   constructor(public input: Input, public save: SaveData, public ui: UiHooks) {}
 
-  /** Aplica o que está equipado (mochila): bônus e cor da camiseta */
+  /** Aplica o que está equipado (mochila): bônus e o visual (camiseta, tênis, faixa, bola, munhequeira) */
   applyGear() {
     const g = gearStats(this.save.equipped);
-    const shirt = this.save.equipped.camiseta ? itemById(this.save.equipped.camiseta) : undefined;
-    setHeroOutfit(shirt?.hue);
+    const look = gearLook(this.save.equipped);
+    setHeroOutfit({ body: look.shirt, feet: look.shoes, head: look.head });
+    setBallColor(look.ball);
     if (this.world) {
       const p = this.world.player;
+      p.ballColor = look.ball;
+      p.wristColor = look.wrist;
       this.world.gear = g;
       p.gear = g;
       const frac = p.hp / p.maxHp;
@@ -71,7 +76,15 @@ export class Game {
   }
 
   /** Começa um jogo novo a partir de uma fase */
-  newGame(stageIdx = 0) {
+  newGame(stageIdx = 0, fresh = true) {
+    // jogo novo: os ganhos da partida anterior (dinheiro, mochila, fichas) começam do zero
+    if (fresh) {
+      this.save.money = 0;
+      this.save.owned = [];
+      this.save.equipped = {};
+      this.save.continues = 0;
+      writeSave(this.save);
+    }
     this.score = 0;
     this.lives = this.difficultyLives();
     this.nextLifeAt = 60000;
@@ -101,6 +114,13 @@ export class Game {
     this.lives = this.difficultyLives();
     this.nextLifeAt = 60000;
     this.startStage(this.stageIdx);
+  }
+
+  /** Desistiu depois do fim de jogo (recomeçar ou menu): as fichas não usadas e o progresso também zeram */
+  giveUp() {
+    this.save.continues = 0;
+    this.save.unlocked = 1;
+    writeSave(this.save);
   }
 
   /** Sai da loja e começa a próxima fase */
@@ -178,11 +198,17 @@ export class Game {
         this.nextLifeAt = w.nextLifeAt;
         if (w.event === 'gameOver') {
           this.setState('gameover');
+          // acabaram as vidas: tudo o que foi juntado na partida volta a zero (dinheiro, mochila, equipamento);
+          // só as fichas de continue ficam até o jogador decidir (continuar nesta fase ou recomeçar)
+          this.save.money = 0;
+          this.save.owned = [];
+          this.save.equipped = {};
+          this.applyGear();
           // sem ficha de continue, o jogo recomeça do início
           if (this.save.continues <= 0) this.save.unlocked = 1;
           writeSave(this.save);
           audio.play('none');
-          this.ui.show('gameover', { score: this.score, stage: w.stageN, name: w.stage.name, best: this.save.best });
+          this.ui.show('gameover', { score: this.score, stage: w.stageN, name: w.stage.name, best: this.save.best, end: ++this.endCount });
         } else if (w.event === 'stageClear') {
           this.bonus = w.stageBonus();
           // bônus em dinheiro da fase: R$ 1 a cada 100 pontos de bônus
@@ -215,7 +241,7 @@ export class Game {
             this.save.unlocked = STAGES.length;
             writeSave(this.save);
             this.setState('victory');
-            this.ui.show('victory', { score: this.score, best: this.save.best });
+            this.ui.show('victory', { score: this.score, best: this.save.best, end: ++this.endCount });
           } else {
             this.save.unlocked = Math.max(this.save.unlocked, next + 1);
             writeSave(this.save);
@@ -278,7 +304,7 @@ export class Game {
       ctx.beginPath();
       ctx.ellipse(W * 0.74, 322, 60, 12, 0, 0, Math.PI * 2);
       ctx.fill();
-      drawHeroSprite(ctx, W * 0.74, 320, { state: 'celebrate', st: t, t, vx: 0, vy: 0, facing: -1, hasBall: false, quick: true, hp: 100 }, { scale: 2.2 / SIZE });
+      drawHeroSprite(ctx, W * 0.74, 320, { state: 'celebrate', st: t, t, vx: 0, vy: 0, facing: -1, hasBall: false, quick: true, hp: 100 }, { scale: 2.2 / HERO_SIZE });
       this.victoryFx.draw(ctx, 0);
       return;
     }

@@ -9,7 +9,7 @@ import { Effects } from '../render/effects';
 import { drawBall } from '../render/fighter';
 import { drawHud, text } from '../render/hud';
 import { drawPickup, drawProjectile, drawProp, drawPropSprite, drawTrafficCar, drawTrain, drawWaterJet, PROP_SIZE } from '../render/props';
-import { PICKUPS, rollPickup, type PickupKind } from '../data/items';
+import { PICKUP_LIFE, PICKUPS, rollPickup, type PickupKind } from '../data/items';
 import { NO_GEAR, type GearStats } from '../data/shop';
 import type { Power } from './actor';
 import { Boss } from './boss';
@@ -549,32 +549,45 @@ export class World {
         this.collect(k.kind, k.x, k.y);
       }
     }
-    this.pickups = this.pickups.filter((k) => !k.taken && k.t < 900);
+    this.pickups = this.pickups.filter((k) => !k.taken && k.t < PICKUP_LIFE);
   }
 
   private collect(kind: PickupKind, x: number, y: number): void {
     const p = this.player;
     const d = PICKUPS[kind];
-    if (d.random) {
-      // presente: um prêmio surpresa (nunca outro presente)
-      let k: PickupKind = 'gift';
-      while (k === 'gift') k = rollPickup();
-      this.fx.popup(x, y - 44, 'SURPRESA!', d.color, 7);
-      return this.collect(k, x, y);
-    }
+    // cada prêmio tem sempre o mesmo efeito, e a mensagem mostra o que ele fez
     audio.sfx(d.oneUp || d.continueToken ? 'oneUp' : 'pickup');
-    let label = d.label;
+    const fx: string[] = [];
     if (d.heal) {
       p.hp = Math.min(p.maxHp, p.hp + d.heal);
-      label = `+${d.heal} ENERGIA`;
+      fx.push(`+${d.heal} ENERGIA`);
     }
-    if (d.power) p.sp = Math.min(1, p.sp + d.power);
-    if (d.points) this.addScore(d.points);
-    if (d.money) this.earn(d.money, x, y - 44);
-    if (d.oneUp) this.lives++;
-    if (d.continueToken) this.bank.continues++;
-    if (d.buff) p.buffs[d.buff] = d.buffT ?? 300;
-    this.fx.popup(x, y - 30, label, d.color, 7);
+    if (d.power) {
+      p.sp = Math.min(1, p.sp + d.power);
+      fx.push(d.power >= 1 ? 'PODER CHEIO' : `+${Math.round(d.power * 100)}% PODER`);
+    }
+    if (d.points) {
+      this.addScore(d.points);
+      fx.push(`+${d.points} PONTOS`);
+    }
+    if (d.money) {
+      this.earn(d.money, x, y, false);
+      fx.push(`+R$ ${Math.round(d.money * (1 + this.gear.money))}`);
+    }
+    if (d.oneUp) {
+      this.lives++;
+      fx.push('+1 VIDA');
+    }
+    if (d.continueToken) {
+      this.bank.continues++;
+      fx.push('+1 FICHA DE CONTINUE');
+    }
+    if (d.buff) {
+      p.buffs[d.buff] = d.buffT ?? 300;
+      const names = { shield: 'ESCUDO', glove: 'DANO x1,5', rocket: 'VELOCIDADE', magnet: 'ÍMÃ' };
+      fx.push(`${names[d.buff]} ${Math.round((d.buffT ?? 300) / 60)}s`);
+    }
+    fx.forEach((txt, i) => this.fx.popup(x, y - 30 - i * 12, txt, d.color, 7));
   }
 
   private hurtAll(test: (a: { x: number; y: number; z: number }) => boolean, dmg: number, hz: Hazard, dir: number) {
@@ -807,14 +820,14 @@ export class World {
       list.push({ y: o.y, draw: () => drawPropSprite(ctx, o.kind, o.x - camX, o.y, o.flash > 0, o.hitT, o.id) || drawProp(ctx, o.kind, o.x - camX, o.y, o.flash > 0, o.hitT, o.accent) });
       if (o.spray) list.push({ y: o.y + 0.05, draw: () => drawWaterJet(ctx, o.x - camX, o.y, o.y - o.size.h * 0.9, o.spray) });
     }
-    for (const k of this.pickups) list.push({ y: k.y, draw: () => drawPickup(ctx, k.kind, k.x - camX, k.y - k.z, k.t, 900 - k.t) });
+    for (const k of this.pickups) list.push({ y: k.y, draw: () => drawPickup(ctx, k.kind, k.x - camX, k.y - k.z, k.t, PICKUP_LIFE - k.t) });
     for (const e of this.enemies) list.push({ y: e.y, draw: () => e.draw(ctx, camX, t) });
     list.push({ y: this.player.y + 0.1, draw: () => this.player.draw(ctx, camX, t) });
     for (const pr of this.projectiles) {
       list.push({
         y: pr.y + 0.2,
         draw: () => {
-          if (pr.kind === 'ball') drawBall(ctx, pr.x - camX, pr.y - pr.z, (pr.power === 'super' ? 8 : pr.power === 'special' ? 7 : 6) * SIZE, pr.spin, pr.glow ?? (pr.fromPlayer ? undefined : '#ff4d4d'));
+          if (pr.kind === 'ball') drawBall(ctx, pr.x - camX, pr.y - pr.z, (pr.power === 'super' ? 8 : pr.power === 'special' ? 7 : 6) * SIZE, pr.spin, pr.glow ?? (pr.fromPlayer ? undefined : '#ff4d4d'), pr.fromPlayer ? this.player.ballColor : undefined);
           else drawProjectile(ctx, pr.kind, pr.x - camX, pr.y - pr.z, this.t, sign(pr.vx));
         },
       });
@@ -839,7 +852,7 @@ export class World {
     const boss = this.boss && this.bossPhase !== 'none' ? this.boss : null;
     drawHud(ctx, {
       hp: p.hp / p.maxHp, hpTrail: p.trail, sp: p.sp, score: this.score, lives: this.lives, stage: this.stageN, stageName: this.stage.name,
-      money: this.bank.money, continues: this.bank.continues, buffs: p.buffs,
+      money: this.bank.money, continues: this.bank.continues, buffs: p.buffs, powerColor: p.wristColor,
       combo: p.combo, comboT: p.comboT, ballReady: p.ball === 'hand', charge: p.state === 'charge' ? p.charge : 0, turbo: p.state === 'charge', go: this.goT > 0 && this.bossPhase === 'none', t,
       boss: boss ? { name: boss.name, hp: boss.hp / boss.maxHp, trail: boss.trail, enraged: boss.enraged } : undefined,
     });

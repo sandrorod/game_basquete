@@ -1,537 +1,415 @@
 {
- "idle": [
+ "walknb": [
   {
-   "file": "idle_0.png",
-   "w": 70,
-   "h": 129,
-   "footX": 36,
-   "base": 129
-  },
-  {
-   "file": "idle_1.png",
-   "w": 71,
-   "h": 129,
-   "footX": 34,
-   "base": 129
-  },
-  {
-   "file": "idle_2.png",
-   "w": 46,
-   "h": 128,
-   "footX": 23,
-   "base": 129
-  },
-  {
-   "file": "idle_3.png",
-   "w": 63,
-   "h": 129,
-   "footX": 31,
-   "base": 129
-  },
-  {
-   "file": "idle_4.png",
-   "w": 49,
-   "h": 128,
-   "footX": 23,
-   "base": 129
-  },
-  {
-   "file": "idle_5.png",
-   "w": 48,
-   "h": 128,
-   "footX": 22,
-   "base": 129
+   "file": "walknb_0.png",
+   "w": 202,
+   "h": 314,
+   "footX": 104,
+   "base": 314
   }
  ],
  "walk": [
   {
    "file": "walk_0.png",
-   "w": 55,
-   "h": 129,
-   "footX": 27,
-   "base": 145
+   "w": 178,
+   "h": 312,
+   "footX": 92,
+   "base": 312
   },
   {
    "file": "walk_1.png",
-   "w": 70,
-   "h": 128,
-   "footX": 34,
-   "base": 145
+   "w": 184,
+   "h": 310,
+   "footX": 94,
+   "base": 310
   },
   {
    "file": "walk_2.png",
-   "w": 76,
-   "h": 145,
-   "footX": 37,
-   "base": 145
+   "w": 180,
+   "h": 310,
+   "footX": 90,
+   "base": 310
   },
   {
    "file": "walk_3.png",
-   "w": 75,
-   "h": 128,
-   "footX": 34,
-   "base": 145
+   "w": 180,
+   "h": 310,
+   "footX": 82,
+   "base": 310
   },
   {
    "file": "walk_4.png",
-   "w": 68,
-   "h": 122,
-   "footX": 33,
-   "base": 139
+   "w": 184,
+   "h": 310,
+   "footX": 84,
+   "base": 310
   },
   {
    "file": "walk_5.png",
-   "w": 72,
-   "h": 123,
-   "footX": 36,
-   "base": 139
+   "w": 180,
+   "h": 310,
+   "footX": 92,
+   "base": 310
   }
  ],
- "run": [
+ "cross": [
   {
-   "file": "run_0.png",
-   "w": 108,
-   "h": 134,
-   "footX": 59,
-   "base": 134
+   "file": "cross_0.png",
+   "w": 252,
+   "h": 284,
+   "footX": 100,
+   "base": 284
   },
   {
-   "file": "run_1.png",
-   "w": 109,
-   "h": 135,
-   "footX": 54,
-   "base": 135
+   "file": "cross_1.png",
+   "w": 270,
+   "h": 278,
+   "footX": 122,
+   "base": 280
   },
   {
-   "file": "run_2.png",
-   "w": 97,
-   "h": 135,
-   "footX": 48,
-   "base": 135
+   "file": "cross_2.png",
+   "w": 264,
+   "h": 278,
+   "footX": 120,
+   "base": 280
   },
   {
-   "file": "run_3.png",
-   "w": 99,
-   "h": 119,
-   "footX": 11,
-   "base": 137
+   "file": "cross_3.png",
+   "w": 276,
+   "h": 290,
+   "footX": 118,
+   "base": 290
   },
   {
-   "file": "run_4.png",
-   "w": 110,
-   "h": 116,
-   "footX": 91,
-   "base": 134
+   "file": "cross_4.png",
+   "w": 272,
+   "h": 288,
+   "footX": 134,
+   "base": 290
   },
   {
-   "file": "run_5.png",
-   "w": 72,
-   "h": 116,
-   "footX": 45,
-   "base": 134
+   "file": "cross_5.png",
+   "w": 320,
+   "h": 300,
+   "footX": 116,
+   "base": 300
   }
  ],
- "walkv": [
+ "idle": [
   {
-   "file": "walkv_0.png",
-   "w": 62,
-   "h": 134,
-   "footX": 30,
-   "base": 134
-  },
-  {
-   "file": "walkv_1.png",
-   "w": 67,
-   "h": 119,
-   "footX": 23,
-   "base": 119
-  },
-  {
-   "file": "walkv_2.png",
-   "w": 58,
-   "h": 116,
-   "footX": 29,
-   "base": 133
-  },
-  {
-   "file": "walkv_3.png",
-   "w": 49,
-   "h": 112,
-   "footX": 14,
-   "base": 132
-  },
-  {
-   "file": "walkv_4.png",
-   "w": 58,
-   "h": 102,
-   "footX": 28,
-   "base": 119
-  },
-  {
-   "file": "walkv_5.png",
-   "w": 47,
-   "h": 107,
-   "footX": 20,
-   "base": 124
-  }
- ],
- "windup": [
-  {
-   "file": "windup_0.png",
-   "w": 72,
-   "h": 121,
-   "footX": 36,
-   "base": 121
-  },
-  {
-   "file": "windup_1.png",
-   "w": 74,
-   "h": 121,
-   "footX": 38,
-   "base": 121
-  },
-  {
-   "file": "windup_2.png",
-   "w": 74,
-   "h": 121,
-   "footX": 36,
-   "base": 121
-  },
-  {
-   "file": "windup_3.png",
-   "w": 67,
-   "h": 121,
-   "footX": 33,
-   "base": 121
-  },
-  {
-   "file": "windup_4.png",
-   "w": 69,
-   "h": 121,
-   "footX": 30,
-   "base": 121
-  },
-  {
-   "file": "windup_5.png",
-   "w": 71,
-   "h": 115,
-   "footX": 35,
-   "base": 115
-  }
- ],
- "throw": [
-  {
-   "file": "throw_0.png",
-   "w": 102,
-   "h": 121,
-   "footX": 45,
-   "base": 121
-  },
-  {
-   "file": "throw_1.png",
-   "w": 97,
-   "h": 121,
-   "footX": 41,
-   "base": 121
-  },
-  {
-   "file": "throw_2.png",
-   "w": 97,
-   "h": 121,
-   "footX": 32,
-   "base": 121
-  },
-  {
-   "file": "throw_3.png",
-   "w": 63,
-   "h": 121,
-   "footX": 14,
-   "base": 121
-  },
-  {
-   "file": "throw_4.png",
-   "w": 54,
-   "h": 113,
-   "footX": 18,
-   "base": 119
-  },
-  {
-   "file": "throw_5.png",
-   "w": 64,
-   "h": 108,
-   "footX": 31,
-   "base": 108
-  }
- ],
- "hurt": [
-  {
-   "file": "hurt_0.png",
-   "w": 63,
-   "h": 123,
-   "footX": 27,
-   "base": 123
-  },
-  {
-   "file": "hurt_1.png",
-   "w": 68,
-   "h": 122,
-   "footX": 33,
-   "base": 123
-  },
-  {
-   "file": "hurt_2.png",
-   "w": 69,
-   "h": 122,
-   "footX": 33,
-   "base": 123
-  },
-  {
-   "file": "hurt_3.png",
-   "w": 79,
-   "h": 122,
-   "footX": 31,
-   "base": 123
-  },
-  {
-   "file": "hurt_4.png",
-   "w": 72,
-   "h": 87,
-   "footX": 36,
-   "base": 89
-  },
-  {
-   "file": "hurt_5.png",
-   "w": 81,
-   "h": 87,
-   "footX": 43,
-   "base": 88
-  }
- ],
- "pushed": [
-  {
-   "file": "pushed_0.png",
-   "w": 83,
-   "h": 123,
-   "footX": 42,
-   "base": 123
-  },
-  {
-   "file": "pushed_1.png",
-   "w": 88,
-   "h": 123,
-   "footX": 45,
-   "base": 123
-  },
-  {
-   "file": "pushed_2.png",
-   "w": 86,
-   "h": 123,
-   "footX": 35,
-   "base": 123
-  },
-  {
-   "file": "pushed_3.png",
-   "w": 56,
-   "h": 122,
-   "footX": 28,
-   "base": 123
-  },
-  {
-   "file": "pushed_4.png",
-   "w": 78,
-   "h": 84,
-   "footX": 31,
-   "base": 86
-  },
-  {
-   "file": "pushed_5.png",
-   "w": 71,
-   "h": 51,
-   "footX": 24,
-   "base": 52
-  }
- ],
- "celebrate": [
-  {
-   "file": "celebrate_0.png",
-   "w": 66,
-   "h": 133,
-   "footX": 30,
-   "base": 137
-  },
-  {
-   "file": "celebrate_1.png",
-   "w": 84,
-   "h": 136,
-   "footX": 39,
-   "base": 137
-  },
-  {
-   "file": "celebrate_2.png",
-   "w": 69,
-   "h": 136,
-   "footX": 38,
-   "base": 137
-  },
-  {
-   "file": "celebrate_3.png",
-   "w": 74,
-   "h": 137,
-   "footX": 40,
-   "base": 137
-  },
-  {
-   "file": "celebrate_4.png",
-   "w": 64,
-   "h": 135,
-   "footX": 34,
-   "base": 136
-  },
-  {
-   "file": "celebrate_5.png",
-   "w": 61,
-   "h": 134,
-   "footX": 33,
-   "base": 135
-  }
- ],
- "ko": [
-  {
-   "file": "ko_0.png",
-   "w": 65,
-   "h": 137,
-   "footX": 31,
-   "base": 137
-  },
-  {
-   "file": "ko_1.png",
-   "w": 69,
-   "h": 137,
-   "footX": 36,
-   "base": 137
-  },
-  {
-   "file": "ko_2.png",
-   "w": 83,
-   "h": 137,
-   "footX": 35,
-   "base": 137
-  },
-  {
-   "file": "ko_3.png",
-   "w": 78,
-   "h": 66,
-   "footX": 38,
-   "base": 67
-  },
-  {
-   "file": "ko_4.png",
-   "w": 97,
-   "h": 38,
-   "footX": 48,
-   "base": 42
-  },
-  {
-   "file": "ko_5.png",
-   "w": 104,
-   "h": 29,
-   "footX": 36,
-   "base": 38
+   "file": "idle_0.png",
+   "w": 190,
+   "h": 304,
+   "footX": 92,
+   "base": 306
   }
  ],
  "legs": [
   {
    "file": "legs_0.png",
-   "w": 85,
-   "h": 107,
-   "footX": 41,
-   "base": 106
+   "w": 216,
+   "h": 292,
+   "footX": 106,
+   "base": 294
   },
   {
    "file": "legs_1.png",
-   "w": 98,
-   "h": 98,
-   "footX": 48,
-   "base": 97
+   "w": 190,
+   "h": 300,
+   "footX": 94,
+   "base": 302
   },
   {
    "file": "legs_2.png",
-   "w": 101,
-   "h": 89,
-   "footX": 50,
-   "base": 88
+   "w": 162,
+   "h": 296,
+   "footX": 80,
+   "base": 296
   },
   {
    "file": "legs_3.png",
-   "w": 99,
-   "h": 95,
-   "footX": 49,
-   "base": 94
-  },
+   "w": 174,
+   "h": 306,
+   "footX": 76,
+   "base": 306
+  }
+ ],
+ "stand": [
   {
-   "file": "legs_4.png",
-   "w": 87,
-   "h": 103,
-   "footX": 43,
-   "base": 102
-  },
-  {
-   "file": "legs_5.png",
-   "w": 79,
-   "h": 103,
-   "footX": 39,
-   "base": 102
+   "file": "stand_0.png",
+   "w": 192,
+   "h": 298,
+   "footX": 80,
+   "base": 300
   }
  ],
  "spin": [
   {
    "file": "spin_0.png",
-   "w": 75,
-   "h": 131,
-   "footX": 33,
-   "base": 130
+   "w": 184,
+   "h": 298,
+   "footX": 70,
+   "base": 298
   },
   {
    "file": "spin_1.png",
-   "w": 89,
-   "h": 132,
-   "footX": 36,
-   "base": 131
+   "w": 184,
+   "h": 292,
+   "footX": 70,
+   "base": 294
+  }
+ ],
+ "run": [
+  {
+   "file": "run_0.png",
+   "w": 252,
+   "h": 296,
+   "footX": 94,
+   "base": 296
   },
   {
-   "file": "spin_2.png",
-   "w": 87,
-   "h": 138,
-   "footX": 45,
-   "base": 137
+   "file": "run_1.png",
+   "w": 284,
+   "h": 296,
+   "footX": 96,
+   "base": 296
   },
   {
-   "file": "spin_3.png",
-   "w": 94,
-   "h": 142,
-   "footX": 47,
-   "base": 141
+   "file": "run_2.png",
+   "w": 274,
+   "h": 290,
+   "footX": 182,
+   "base": 290
   },
   {
-   "file": "spin_4.png",
-   "w": 92,
-   "h": 141,
+   "file": "run_3.png",
+   "w": 280,
+   "h": 282,
+   "footX": 70,
+   "base": 282
+  },
+  {
+   "file": "run_4.png",
+   "w": 314,
+   "h": 278,
+   "footX": 132,
+   "base": 278
+  },
+  {
+   "file": "run_5.png",
+   "w": 260,
+   "h": 276,
+   "footX": 76,
+   "base": 276
+  },
+  {
+   "file": "run_6.png",
+   "w": 246,
+   "h": 272,
+   "footX": 56,
+   "base": 272
+  },
+  {
+   "file": "run_7.png",
+   "w": 234,
+   "h": 274,
+   "footX": 72,
+   "base": 274
+  },
+  {
+   "file": "run_8.png",
+   "w": 250,
+   "h": 282,
+   "footX": 90,
+   "base": 282
+  },
+  {
+   "file": "run_9.png",
+   "w": 218,
+   "h": 276,
+   "footX": 78,
+   "base": 276
+  },
+  {
+   "file": "run_10.png",
+   "w": 186,
+   "h": 286,
+   "footX": 70,
+   "base": 286
+  }
+ ],
+ "windup": [
+  {
+   "file": "windup_0.png",
+   "w": 198,
+   "h": 282,
+   "footX": 86,
+   "base": 286
+  },
+  {
+   "file": "windup_1.png",
+   "w": 218,
+   "h": 284,
+   "footX": 102,
+   "base": 288
+  },
+  {
+   "file": "windup_2.png",
+   "w": 214,
+   "h": 288,
+   "footX": 92,
+   "base": 292
+  },
+  {
+   "file": "windup_3.png",
+   "w": 174,
+   "h": 286,
+   "footX": 64,
+   "base": 290
+  },
+  {
+   "file": "windup_4.png",
+   "w": 160,
+   "h": 292,
+   "footX": 56,
+   "base": 294
+  }
+ ],
+ "shoot": [
+  {
+   "file": "shoot_0.png",
+   "w": 200,
+   "h": 334,
+   "footX": 62,
+   "base": 334
+  },
+  {
+   "file": "shoot_1.png",
+   "w": 182,
+   "h": 314,
    "footX": 52,
-   "base": 140
+   "base": 314
+  }
+ ],
+ "throw": [
+  {
+   "file": "throw_0.png",
+   "w": 236,
+   "h": 288,
+   "footX": 92,
+   "base": 288
   },
   {
-   "file": "spin_5.png",
-   "w": 75,
-   "h": 144,
-   "footX": 40,
-   "base": 143
+   "file": "throw_1.png",
+   "w": 226,
+   "h": 278,
+   "footX": 84,
+   "base": 278
   },
   {
-   "file": "spin_6.png",
-   "w": 78,
-   "h": 144,
-   "footX": 43,
-   "base": 143
+   "file": "throw_2.png",
+   "w": 332,
+   "h": 276,
+   "footX": 92,
+   "base": 278
+  }
+ ],
+ "catch": [
+  {
+   "file": "catch_0.png",
+   "w": 216,
+   "h": 278,
+   "footX": 98,
+   "base": 282
+  },
+  {
+   "file": "catch_1.png",
+   "w": 170,
+   "h": 288,
+   "footX": 84,
+   "base": 292
+  }
+ ],
+ "celebrate": [
+  {
+   "file": "celebrate_0.png",
+   "w": 208,
+   "h": 304,
+   "footX": 100,
+   "base": 304
+  },
+  {
+   "file": "celebrate_1.png",
+   "w": 208,
+   "h": 290,
+   "footX": 102,
+   "base": 290
+  },
+  {
+   "file": "celebrate_2.png",
+   "w": 214,
+   "h": 306,
+   "footX": 100,
+   "base": 306
+  },
+  {
+   "file": "celebrate_3.png",
+   "w": 188,
+   "h": 312,
+   "footX": 96,
+   "base": 314
+  }
+ ],
+ "ko": [
+  {
+   "file": "ko_0.png",
+   "w": 184,
+   "h": 254,
+   "footX": 70,
+   "base": 260
+  },
+  {
+   "file": "ko_1.png",
+   "w": 172,
+   "h": 276,
+   "footX": 72,
+   "base": 282
+  },
+  {
+   "file": "ko_2.png",
+   "w": 172,
+   "h": 260,
+   "footX": 84,
+   "base": 268
+  },
+  {
+   "file": "ko_3.png",
+   "w": 272,
+   "h": 214,
+   "footX": 116,
+   "base": 228
+  },
+  {
+   "file": "ko_4.png",
+   "w": 258,
+   "h": 192,
+   "footX": 128,
+   "base": 208
+  },
+  {
+   "file": "ko_5.png",
+   "w": 242,
+   "h": 116,
+   "footX": 120,
+   "base": 136
+  },
+  {
+   "file": "ko_6.png",
+   "w": 218,
+   "h": 76,
+   "footX": 106,
+   "base": 104
   }
  ]
 }

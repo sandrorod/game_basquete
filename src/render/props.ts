@@ -1,4 +1,4 @@
-import { PICKUPS, type PickupKind } from '../data/items';
+import { PICKUP_BLINK, PICKUP_LIFE, PICKUPS, type PickupKind } from '../data/items';
 import { SIZE } from '../core/config';
 import { shade } from '../core/math';
 import type { ProjKind } from '../data/bosses';
@@ -383,10 +383,11 @@ export function drawProp(ctx: CanvasRenderingContext2D, kind: PropKind, x: numbe
 }
 
 /** Prêmio no chão: sprite do modelo, flutuando e brilhando (pisca antes de sumir) */
-export function drawPickup(ctx: CanvasRenderingContext2D, kind: PickupKind, x: number, y: number, t: number, left = 900) {
+export function drawPickup(ctx: CanvasRenderingContext2D, kind: PickupKind, x: number, y: number, t: number, left = PICKUP_LIFE) {
   const f = sprites.items[kind];
   if (!f) return;
-  if (left < 150 && Math.floor(t / 5) % 2) return;
+  // perto de sumir: pisca (cada vez mais rápido)
+  if (left < PICKUP_BLINK && Math.floor(t / (left < 60 ? 3 : 6)) % 2) return;
   const d = PICKUPS[kind];
   const bob = Math.sin(t * 0.1) * 2;
   ctx.save();

@@ -117,7 +117,7 @@ function circle(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, 
   }
 }
 
-export function drawBall(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, spin: number, glow?: string) {
+export function drawBall(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, spin: number, glow?: string, color?: string) {
   ctx.save();
   ctx.translate(x, y);
   if (glow) {
@@ -125,9 +125,11 @@ export function drawBall(ctx: CanvasRenderingContext2D, x: number, y: number, r:
     ctx.shadowBlur = 12;
   }
   const g = ctx.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.1, 0, 0, r);
-  g.addColorStop(0, '#ffb35c');
-  g.addColorStop(0.6, '#f07818');
-  g.addColorStop(1, '#a8460a');
+  // cor da bola (a da mochila; padrão laranja)
+  const base = color ?? '#f07818';
+  g.addColorStop(0, shade(base, 0.35));
+  g.addColorStop(0.6, base);
+  g.addColorStop(1, shade(base, -0.4));
   ctx.beginPath();
   ctx.arc(0, 0, r, 0, Math.PI * 2);
   ctx.fillStyle = g;

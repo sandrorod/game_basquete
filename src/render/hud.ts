@@ -1,6 +1,7 @@
-import { H, SIZE, W } from '../core/config';
+import { H, HERO_SIZE, SIZE, W } from '../core/config';
 import { drawHeroSprite } from './spriteAnim';
 import { sprites } from './sprites';
+import { shade } from '../core/math';
 
 export const FONT = '"Press Start 2P", monospace';
 
@@ -49,6 +50,8 @@ export interface HudData {
   money?: number;
   continues?: number;
   buffs?: { shield: number; glove: number; rocket: number; magnet: number };
+  /** Cor da barra de poder (munhequeira equipada) */
+  powerColor?: string;
   ballReady: boolean;
   charge: number;
   turbo: boolean;
@@ -68,7 +71,17 @@ export function drawHud(ctx: CanvasRenderingContext2D, d: HudData) {
   ctx.fill();
   ctx.clip();
   // retrato: o rosto do STREET PLAYER (quadro parado do modelo, ampliado)
-  drawHeroSprite(ctx, 24, 120, { state: d.hp < 0.25 ? 'hurt' : 'idle', st: 20, t: 0, vx: 0, vy: 0, facing: 1, hasBall: false, quick: true, hp: 100 }, { scale: 1.3 / SIZE });
+  // retrato: o rosto do desenho grande do herói (nítido); com pouca energia pisca vermelho
+  const face = sprites.heroFull;
+  if (face) {
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(face, face.width * 0.2, 0, face.width * 0.56, face.width * 0.66, 8, 8, 32, 38);
+    if (d.hp < 0.25 && Math.floor(d.t / 8) % 2) {
+      ctx.fillStyle = 'rgba(255,0,0,0.35)';
+      ctx.fillRect(8, 8, 32, 38);
+    }
+  } else
+  drawHeroSprite(ctx, 24, 120, { state: d.hp < 0.25 ? 'hurt' : 'idle', st: 20, t: 0, vx: 0, vy: 0, facing: 1, hasBall: false, quick: true, hp: 100 }, { scale: 1.3 / HERO_SIZE });
   ctx.restore();
   ctx.strokeStyle = '#ffd23f';
   ctx.lineWidth = 1.5;
@@ -76,7 +89,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, d: HudData) {
   text(ctx, 'JOGADOR 1', 46, 16, 7, '#ffd23f');
   bar(ctx, 46, 20, 150, 9, d.hp, d.hpTrail, d.hp < 0.25 && Math.floor(d.t / 8) % 2 ? ['#ff6b6b', '#c92a2a'] : ['#7cff6b', '#1f9d3a']);
   // barra especial (SP)
-  bar(ctx, 46, 33, 100, 5, d.sp, d.sp, d.sp >= 1 && Math.floor(d.t / 6) % 2 ? ['#ffffff', '#38f6ff'] : ['#38f6ff', '#1e63d6']);
+  bar(ctx, 46, 33, 100, 5, d.sp, d.sp, d.sp >= 1 && Math.floor(d.t / 6) % 2 ? ['#ffffff', d.powerColor ?? '#38f6ff'] : d.powerColor ? [d.powerColor, shade(d.powerColor, -0.45)] : ['#38f6ff', '#1e63d6']);
   text(ctx, d.turbo ? 'TURBO' : d.sp >= 1 ? 'SUPER!' : 'PODER', 150, 39, 5, d.turbo ? '#ffd23f' : d.sp >= 1 ? '#38f6ff' : '#9fdcff');
   // vidas
   for (let i = 0; i < Math.min(d.lives, 6); i++) {

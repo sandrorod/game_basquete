@@ -1,17 +1,25 @@
-import { SIZE } from '../core/config';
+import { HERO_SIZE, SIZE } from '../core/config';
 import type { EnemyKind } from '../data/looks';
 import { drawBall } from './fighter';
-import { drawSprite, sprites, variant, type Frame } from './sprites';
+import { drawSprite, sprites, zoneVariant, type Frame, type Zones } from './sprites';
 
 /** Altura do herói na tela (unidades lógicas) */
-export const HERO_HEIGHT = 88 * SIZE;
+export const HERO_HEIGHT = 88 * HERO_SIZE;
+
+/** Cor da bola do herói (mochila) */
+let ballColor: string | undefined;
+export function setBallColor(c?: string) {
+  ballColor = c;
+}
 
 /** Quadros do herói com a cor da camiseta equipada */
 let heroSet: Record<string, Frame[]> | null = null;
 
-/** Troca a cor do uniforme do herói (camiseta da mochila); sem matiz = uniforme original */
-export function setHeroOutfit(hue?: number) {
-  heroSet = hue == null ? null : Object.fromEntries(Object.entries(sprites.hero).map(([k, list]) => [k, variant(`hero-${hue}-${k}`, list, { hue, sat: 1.05, redOnly: true })]));
+/** Cores do herói conforme a mochila: camiseta, tênis e faixa da cabeça; nada equipado = uniforme original */
+export function setHeroOutfit(z: Zones = {}) {
+  const none = z.body === undefined && z.feet === undefined && z.head === undefined;
+  const key = `${z.head}-${z.body}-${z.feet}`;
+  heroSet = none ? null : Object.fromEntries(Object.entries(sprites.hero).map(([k, list]) => [k, zoneVariant(`hero-${key}-${k}`, list, z)]));
 }
 
 const cyc = (list: Frame[], t: number, every: number) => list[Math.floor(t / every) % list.length];
@@ -32,69 +40,77 @@ export interface HeroPoseInput {
 
 /** Parado por 10 s com a bola: começa a sequência de truques */
 export const TRICK_AFTER = 600;
-const LEGS_PASS = 36;
+const LEGS_PASS = 40;
 const LEGS_TOTAL = LEGS_PASS * 3;
 const SPIN_IN = 35, SPIN_HOLD = 150;
 export const TRICK_CYCLE = LEGS_TOTAL + SPIN_IN * 2 + SPIN_HOLD + 60;
 
-/** Truque da vez: passagem entre as pernas (3 vezes), depois a bola girando no dedo; repete */
+/**
+ * Truque da vez (parado há 10 s): passa a bola entre as pernas (3 vezes), depois sobe a bola e roda no dedo; repete.
+ */
 function trickFrame(H: Record<string, Frame[]>, idleT: number): Frame | null {
   if (!H.legs?.length || !H.spin?.length) return null;
   const t = (idleT - TRICK_AFTER) % TRICK_CYCLE;
-  if (t < LEGS_TOTAL) return H.legs[Math.floor(((t % LEGS_PASS) / LEGS_PASS) * H.legs.length)];
+  if (t < LEGS_TOTAL) {
+    const seq = [0, 1, 2, 1];
+    return H.legs[seq[Math.floor(((t % LEGS_PASS) / LEGS_PASS) * seq.length)]];
+  }
   const u = t - LEGS_TOTAL;
-  const n = H.spin.length;
-  if (u < SPIN_IN) return H.spin[Math.min(n - 3, Math.floor((u / SPIN_IN) * (n - 2)))];
-  // bola girando no dedo: alterna os dois últimos quadros
-  if (u < SPIN_IN + SPIN_HOLD) return H.spin[n - 2 + (Math.floor((u - SPIN_IN) / 8) % 2)];
-  if (u < SPIN_IN * 2 + SPIN_HOLD) return H.spin[Math.max(0, n - 3 - Math.floor(((u - SPIN_IN - SPIN_HOLD) / SPIN_IN) * (n - 2)))];
+  if (u < SPIN_IN) return H.legs[3];
+  if (u < SPIN_IN + SPIN_HOLD) {
+    const k = u - SPIN_IN;
+    return k < 14 ? H.stand[0] : H.spin[Math.floor(k / 6) % 2];
+  }
+  if (u < SPIN_IN * 2 + SPIN_HOLD) return H.stand[0];
   return null;
 }
 
-/** Quadro do herói para o estado atual (os quadros do modelo olham para a direita) */
-export function heroFrame(p: HeroPoseInput): { f: Frame; rot?: number; ball?: boolean; trick?: boolean } {
+/** Quadro do herói para o estado atual (folha art/hero-sheet.png; os quadros olham para a direita) */
+export function heroFrame(p: HeroPoseInput): { f: Frame; trick?: boolean } {
   const H = heroSet ?? sprites.hero;
   const s = p.st;
+  const at = (list: Frame[], dur: number) => list[Math.min(list.length - 1, Math.floor((s / dur) * list.length))];
   switch (p.state) {
     case 'walk':
-      return Math.abs(p.vy) > Math.abs(p.vx) * 1.2 ? { f: cyc(H.walkv, p.t, 7), ball: true } : { f: cyc(H.walk, p.t, 6), ball: true };
+      // andando batendo bola (a bola já vem desenhada); sem bola: os passos da corrida, mais devagar
+      return { f: p.hasBall ? cyc(H.walk, p.t, 7) : cyc(H.run, p.t, 6) };
     case 'run':
-      return { f: cyc(H.run, p.t, 4), ball: true };
-    case 'windup': {
-      const frames = p.quick ? [3, 4, 5] : [0, 1, 2, 3, 4, 5];
-      const dur = p.quick ? 5 : 13;
-      return { f: H.windup[frames[Math.min(frames.length - 1, Math.floor((s / dur) * frames.length))]] };
-    }
+      // correndo: com a bola, drible baixo; sem bola, corrida
+      return { f: p.hasBall ? cyc(H.cross, p.t, 5) : cyc(H.run, p.t, 3) };
+    case 'windup':
+      return { f: p.quick ? at(H.windup.slice(2), 5) : at(H.windup, 13) };
     case 'charge':
-      return { f: H.windup[5] };
+      // carregando o turbo: corpo armado, balançando entre os dois últimos quadros da preparação
+      return { f: H.windup[3 + (Math.floor(p.t / 6) % 2)] };
     case 'throw':
-      return { f: H.throw[Math.min(5, Math.floor(s / (p.quick ? 1.6 : 2.4)))] };
+      return { f: at(H.throw, p.quick ? 9 : 14) };
     case 'super':
-      return s < 18 ? { f: H.windup[5] } : { f: H.throw[Math.min(5, Math.floor((s - 18) / 2.5))] };
+      return { f: s < 18 ? H.windup[4] : H.shoot[Math.min(1, Math.floor((s - 18) / 6))] };
     case 'shove':
       return { f: H.throw[s < 6 ? 0 : 1] };
     case 'hurt':
-      return { f: H.hurt[Math.min(5, 3 + Math.floor(s / 6))] };
+      return { f: H.ko[Math.min(1, Math.floor(s / 8))] };
     case 'fall':
     case 'falling':
-      return { f: H.pushed[Math.min(4, 1 + Math.floor(s / 4))] };
+      return { f: H.ko[Math.min(4, 2 + Math.floor(s / 5))] };
     case 'down':
-      return { f: p.hp <= 0 ? H.ko[5] : H.pushed[5] };
+      return { f: p.hp <= 0 ? H.ko[6] : H.ko[5] };
     case 'getup':
-      return { f: H.ko[Math.max(0, 4 - Math.floor((s / 24) * 5))] };
+      return { f: H.ko[Math.max(0, 5 - Math.floor((s / 24) * 6))] };
     case 'ko':
-      return { f: H.ko[Math.min(5, 3 + Math.floor(s / 10))] };
+      return { f: H.ko[Math.min(6, 3 + Math.floor(s / 10))] };
     case 'respawn':
       return { f: H.celebrate[3] };
     case 'celebrate':
-      return { f: cyc(H.celebrate, p.t, 8) };
+      return { f: cyc(H.celebrate, p.t, 10) };
     default: {
-      // parado há mais de 10 s com a bola: truques (os quadros já trazem a bola)
+      // parado há mais de 10 s com a bola: truques
       const tf = p.hasBall && (p.idleT ?? 0) >= TRICK_AFTER ? trickFrame(H, p.idleT!) : null;
       if (tf) return { f: tf, trick: true };
+      // parado com a bola: bate bola na frente do corpo; sem bola: parado de lado
+      if (p.hasBall) return { f: Math.floor(p.t / 20) % 2 ? H.legs[0] : H.idle[0] };
+      return { f: H.walknb[0] };
     }
-      // parado: alterna as duas poses de frente
-      return { f: H.idle[Math.floor(p.t / 40) % 2 === 0 ? 0 : 3], ball: true };
   }
 }
 
@@ -108,13 +124,6 @@ export function drawHeroSprite(ctx: CanvasRenderingContext2D, x: number, y: numb
   // os truques já foram reduzidos para a mesma resolução dos quadros do herói (tools/slice_tricks.py)
   const s = heroScale() * (o.scale ?? 1);
   drawSprite(ctx, r.f, x, y, s, { facing: p.facing, flash: o.flash, alpha: o.alpha });
-  if (r.ball && p.hasBall) {
-    // drible: a bola sobe e desce ao lado do corpo
-    const cyc2 = (p.t % 30) / 30;
-    const k = cyc2 < 0.5 ? cyc2 * 2 : 2 - cyc2 * 2;
-    const top = y - 34 * SIZE * (o.scale ?? 1);
-    drawBall(ctx, x + p.facing * 15 * SIZE * (o.scale ?? 1), top + (y - 6 - top) * k, 5.5 * SIZE * (o.scale ?? 1), p.t * 0.3);
-  }
 }
 
 // ───────────────────────────── inimigos ─────────────────────────────

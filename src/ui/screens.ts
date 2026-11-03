@@ -1,5 +1,5 @@
 import { audio } from '../core/audio';
-import { SIZE, type Difficulty } from '../core/config';
+import { HERO_SIZE, SIZE, type Difficulty } from '../core/config';
 import { addRank, writeSave, type SaveData } from '../core/save';
 import { describe, gearStats, money, SHOP, SLOT_NAMES, type ShopItem, type Slot } from '../data/shop';
 import { STAGES } from '../data/stages';
@@ -9,7 +9,7 @@ import type { Game } from '../game/game';
 
 type ScreenName = 'title' | 'howto' | 'options' | 'pause' | 'gameover' | 'victory' | 'shop' | 'backpack' | 'ranking' | 'none';
 
-const ICON: Record<Slot, string> = { tenis: '👟', camiseta: '👕', bola: '🏀', munhequeira: '💪', bone: '🧢' };
+const ICON: Record<Slot, string> = { tenis: '👟', camiseta: '👕', bola: '🏀', munhequeira: '💪', bone: '🎽' };
 const itemIcon = (it: ShopItem) => (it.consumable === 'continue' ? '👑' : it.consumable === 'life' ? '❤️' : ICON[it.slot]);
 const esc = (t: string) => t.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -25,6 +25,8 @@ export class Screens {
   private bagFrom: ScreenName = 'pause';
   /** Posição destacada no ranking (placar recém-gravado) */
   private highlight = -1;
+  /** Fim de jogo cujo nome já foi gravado (não aceita gravar de novo) */
+  private recordedEnd = -1;
   current: ScreenName = 'none';
 
   constructor(root: HTMLElement, private save: SaveData, private onTouchPref: () => void) {
@@ -48,7 +50,7 @@ export class Screens {
         e.preventDefault();
         btns[i].click();
       } else if (e.code === 'Escape' && this.current === 'ranking') {
-        this.show(this.from, this.from === 'gameover' || this.from === 'victory' ? this.endData : {});
+        this.rankingBack();
       } else if (e.code === 'Escape' && (this.current === 'howto' || this.current === 'options')) {
         this.show(this.from);
       } else if (e.code === 'Escape' && this.current === 'backpack') {
@@ -96,7 +98,7 @@ export class Screens {
       case 'title': {
         // principal(is) em cima, ocupando a largura toda; o resto numa grade 2×2
         const main = [this.btn('Novo Jogo', () => g.newGame(0))];
-        if (this.save.unlocked > 1) main.push(this.btn(`Continuar · Fase ${Math.min(this.save.unlocked, STAGES.length)}`, () => g.newGame(Math.min(this.save.unlocked, STAGES.length) - 1)));
+        if (this.save.unlocked > 1) main.push(this.btn(`Continuar · Fase ${Math.min(this.save.unlocked, STAGES.length)}`, () => g.newGame(Math.min(this.save.unlocked, STAGES.length) - 1, false)));
         for (const b of main) b.classList.add('wide');
         const btns = [
           ...main,
@@ -216,28 +218,59 @@ export class Screens {
           writeSave(this.save);
           sound.textContent = `Som: ${on ? 'LIGADO' : 'DESLIGADO'}`;
         }, true);
-        this.mount(`<div class="screen"><div class="panel"><h2 class="blink">PAUSA</h2><div class="menu"></div></div></div>`, [
-          this.btn('Continuar', () => g.togglePause()),
-          this.btn('Mochila', () => this.openBag('pause')),
-          this.btn('Reiniciar Fase', () => g.restartStage(), true),
-          sound,
-          this.btn('Opções', () => this.show('options'), true),
-          this.btn('Menu Principal', () => g.toTitle(), true),
-        ]);
+        const w = g.world;
+        const eq = SHOP.filter((it) => this.save.equipped[it.slot] === it.id);
+        const cont = this.btn('Continuar', () => g.togglePause());
+        cont.classList.add('wide');
+        const menuBtn = this.btn('Menu Principal', () => g.toTitle(), true);
+        menuBtn.classList.add('wide');
+        this.mount(
+          `<div class="screen pause-screen"><div class="panel pause-panel">
+            <button class="close-x" aria-label="Fechar">✕</button>
+            <div class="pause-info">
+              <h2 class="blink">PAUSA</h2>
+              <p class="pause-stage">FASE ${w?.stageN ?? 1}<br/><span>${w?.stage.name ?? ''}</span></p>
+              <div class="pause-stats">
+                <span>PONTOS</span><b>${String(w?.score ?? 0).padStart(8, '0')}</b>
+                <span>VIDAS</span><b>${w?.lives ?? 0}</b>
+                <span>DINHEIRO</span><b class="money">${money(this.save.money)}</b>
+                <span>FICHAS</span><b>👑 ${this.save.continues}</b>
+              </div>
+              <div class="pause-gear">${eq.length ? eq.map((it) => `<span class="chip" style="--c:${it.color ?? '#555'}">${itemIcon(it)} ${it.name}</span>`).join('') : '<span class="dim">Nada equipado · abra a Mochila</span>'}</div>
+            </div>
+            <div class="menu pause-menu"></div>
+          </div></div>`,
+          [
+            cont,
+            this.btn('🎒 Mochila', () => this.openBag('pause')),
+            this.btn('↺ Reiniciar Fase', () => g.restartStage(), true),
+            sound,
+            this.btn('⚙ Opções', () => this.show('options'), true),
+            menuBtn,
+          ],
+        );
+        this.root.querySelector('.close-x')?.addEventListener('click', () => {
+          audio.sfx('select');
+          g.togglePause();
+        });
         break;
       }
       case 'gameover': {
         const fichas = this.save.continues;
         const btns: HTMLButtonElement[] = [];
         if (fichas > 0) btns.push(this.btn(`Continuar nesta fase (ficha 👑 x${fichas})`, () => g.useContinue()));
-        btns.push(this.btn('Recomeçar do início', () => g.newGame(0), fichas > 0), this.btn('Ranking', () => this.show('ranking'), true), this.btn('Menu Principal', () => g.toTitle(), true));
+        btns.push(
+          this.btn('Recomeçar do início', () => (g.giveUp(), g.newGame(0)), fichas > 0),
+          this.btn('Ranking', () => this.show('ranking'), true),
+          this.btn('Menu Principal', () => (g.giveUp(), g.toTitle()), true),
+        );
         this.mount(
           `<div class="screen"><div class="panel">
             <p class="big">FIM DE JOGO</p>
             <p class="score">PONTOS ${String(data.score ?? 0).padStart(8, '0')}</p>
             <p class="small">FASE ${data.stage} · ${data.name}<br/>RECORDE ${String(Math.max(this.save.best, Number(data.score ?? 0))).padStart(8, '0')}</p>
             ${this.recordForm()}
-            <p class="small">${fichas > 0 ? `Você tem ${fichas} ficha(s) de continue: pode continuar na mesma fase (os pontos voltam a zero).` : 'Sem ficha de continue: é preciso recomeçar do início.<br/>Pegue a coroa 👑 nos tambores ou compre fichas na loja.'}</p>
+            <p class="small">Acabaram as vidas: o dinheiro e os itens da mochila voltaram a zero.<br/>${fichas > 0 ? `Você tem ${fichas} ficha(s) de continue: pode continuar na mesma fase (os pontos voltam a zero).` : 'Sem ficha de continue: é preciso recomeçar do início.<br/>Pegue a coroa 👑 nos tambores ou compre fichas na loja.'}</p>
             <div class="menu"></div></div></div>`,
           btns,
         );
@@ -266,7 +299,7 @@ export class Screens {
             <h2>RANKING · TOP 10</h2>
             ${rows ? `<table class="rank"><tr><th>#</th><th>NOME</th><th>PONTOS</th><th>FASE</th></tr>${rows}</table>` : '<p class="small">Nenhum placar gravado ainda.</p>'}
             <div class="menu"></div></div></div>`,
-          [this.btn('Voltar', () => this.show(this.from, this.from === 'gameover' || this.from === 'victory' ? this.endData : {}))],
+          [this.btn('Voltar', () => this.rankingBack())],
         );
         break;
       }
@@ -279,9 +312,18 @@ export class Screens {
     }
   }
 
+  /** Voltar do ranking: depois de gravar o nome no fim de jogo vai para a tela inicial (não grava de novo) */
+  private rankingBack() {
+    const ended = this.from === 'gameover' || this.from === 'victory';
+    if (ended && this.recordedEnd === Number(this.endData.end)) {
+      if (this.from === 'gameover') this.game.giveUp();
+      this.game.toTitle();
+    } else this.show(this.from, ended ? this.endData : {});
+  }
+
   /** Campo para gravar o nome quando o placar entra no ranking */
   private recordForm() {
-    if (!this.game.isRecord) return '';
+    if (!this.game.isRecord || this.recordedEnd === Number(this.endData.end)) return '';
     return `<div class="record"><p class="new-rec blink">NOVO RECORDE!</p>
       <p class="small">Digite seu nome para entrar no ranking:</p>
       <div class="rec-row"><input class="name" maxlength="12" placeholder="SEU NOME" autocomplete="off" /><button class="btn save-rec">Gravar</button></div></div>`;
@@ -297,6 +339,7 @@ export class Screens {
       const g = this.game;
       const entry = { name, score: g.score, stage: g.world?.stageN ?? g.stageIdx + 1 };
       addRank(this.save, entry);
+      this.recordedEnd = Number(this.endData.end);
       this.highlight = this.save.ranking.indexOf(entry);
       audio.sfx('oneUp');
       this.show('ranking');
@@ -318,7 +361,7 @@ export class Screens {
     const d = document.createElement('div');
     const on = this.save.equipped[it.slot] === it.id;
     d.className = `item${on ? ' on' : ''}`;
-    d.innerHTML = `<span class="ic">${itemIcon(it)}</span>
+    d.innerHTML = `<span class="ic"${it.color ? ` style="--c:${it.color}"` : ''}>${itemIcon(it)}</span>
       <span class="nm">${it.name}</span>
       <span class="st">${it.consumable === 'continue' ? 'Continua na mesma fase depois de perder todas as vidas' : it.consumable === 'life' ? '+1 vida agora' : describe(it.stats)}</span>
       ${note ? `<span class="pr">${note}</span>` : ''}`;
@@ -423,7 +466,7 @@ export class Screens {
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, -img.width / 2, -img.height);
         ctx.restore();
-      } else drawHeroSprite(ctx, 180, 418, { state: 'idle', st: t, t, vx: 0, vy: 0, facing: 1, hasBall: true, quick: true, hp: 100 }, { scale: 4.2 / SIZE });
+      } else drawHeroSprite(ctx, 180, 418, { state: 'idle', st: t, t, vx: 0, vy: 0, facing: 1, hasBall: true, quick: true, hp: 100 }, { scale: 4.2 / HERO_SIZE });
       this.heroRaf = requestAnimationFrame(frame);
     };
     frame();

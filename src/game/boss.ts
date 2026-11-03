@@ -28,6 +28,8 @@ export class Boss extends Enemy {
   index: number;
   /** Quadros mostrando o toco */
   blockT = 0;
+  /** Fase do passo (animação das pernas) */
+  stepT = 0;
 
   constructor(index: number, x: number, y: number, w: World) {
     super('heavy', x, y, w, BOSSES[index].name, index);
@@ -51,8 +53,9 @@ export class Boss extends Enemy {
     return 11 * this.scale;
   }
 
+  /** Fúria (abaixo de 20% de energia): ataques mais rápidos, golpes encadeados e mais dano */
   private get mult() {
-    return this.enraged ? this.bdef.rage : 1;
+    return this.enraged ? this.bdef.rage * 1.2 : 1;
   }
 
   update(w: World) {
@@ -61,13 +64,16 @@ export class Boss extends Enemy {
     if (this.blockT > 0) this.blockT--;
     const p = w.player;
     const dx = p.x - this.x, dy = p.y - this.y;
-    if (!this.enraged && this.hp < this.maxHp * 0.35 && this.state !== 'ko') {
+    if (!this.enraged && this.hp < this.maxHp * 0.2 && this.state !== 'ko') {
       this.enraged = true;
+      this.dmg = Math.round(this.dmg * 1.25);
       w.fx.popup(this.x, this.y - 110 * this.scale, 'FÚRIA!', '#ff4d4d', 11);
       audio.sfx('boss');
     }
     const s = this.speed * this.mult;
     const playerDown = ['ko', 'respawn', 'falling'].includes(p.state);
+    // sempre de frente para o jogador quando não está no meio de um golpe
+    if (['think', 'recover', 'approach', 'retreat', 'align', 'summon', 'windup', 'jumpWind', 'volley'].includes(this.state) && Math.abs(dx) > 4) this.facing = sign(dx) as 1 | -1;
 
     switch (this.state) {
       case 'intro':
@@ -86,6 +92,12 @@ export class Boss extends Enemy {
         const tx = p.x - this.facing * want;
         this.vx = Math.abs(tx - this.x) > 10 ? sign(tx - this.x) * s * 0.7 : 0;
         this.vy = Math.abs(dy) > 6 ? sign(dy) * s * 0.45 : 0;
+        // pulinho para trocar de posição de vez em quando
+        if (this.z === 0 && this.st % 50 === 25 && chance(0.25)) {
+          this.vz = 4.5;
+          this.z = 0.1;
+          this.vy = sign(dy || 1) * s * 0.9;
+        }
         if (playerDown) break;
         if (this.st >= Math.round(40 / this.mult)) this.chooseMove(w);
         break;
@@ -352,7 +364,7 @@ export class Boss extends Enemy {
   }
 
   private finish(recover: number) {
-    this.cooldown = recover;
+    this.cooldown = this.enraged ? Math.round(recover * 0.5) : recover;
     this.setState('recover');
   }
 
@@ -435,6 +447,12 @@ export class Boss extends Enemy {
     const st = this.st;
     let rot = 0, sx = 1, sy = 1, lift = 0, dx = 0;
     const walk = Math.abs(this.vx) + Math.abs(this.vy) > 0.3;
+    // passos: pernas em tesoura (andar) ou passadas longas (correr); o tronco sobe e desce a cada passo
+    const speed = Math.abs(this.vx) + Math.abs(this.vy) * 0.6;
+    const run = speed > 2.6;
+    this.stepT += walk ? Math.min(0.42, 0.1 + speed * 0.07) : 0;
+    let stride = walk ? Math.sin(this.stepT) * (run ? 0.42 : 0.26) : 0;
+    const bob = walk ? Math.abs(Math.cos(this.stepT)) * (run ? 4 : 2.5) : 0;
     switch (this.state) {
       case 'think':
       case 'intro':
@@ -526,7 +544,50 @@ export class Boss extends Enemy {
       sx = 0.95;
       lift = 6;
     }
-    return { rot, sx, sy, lift, dx };
+    if (['attack', 'windup', 'jump', 'jumpWind', 'fall', 'down', 'ko', 'getup', 'volley', 'stagger', 'dodge'].includes(this.state)) stride = 0;
+    if (this.state === 'dash') {
+      // investida: correndo de verdade
+      this.stepT += 0.5;
+      stride = Math.sin(this.stepT) * 0.45;
+    }
+    return { rot, sx, sy, lift, dx, stride, bob };
+  }
+
+  /**
+   * Andar com uma arte só: o desenho é dividido no quadril. As pernas abrem e fecham em tesoura
+   * (cada metade inclinada para um lado) e o tronco sobe e desce a cada passo.
+   */
+  private drawWalking(ctx: CanvasRenderingContext2D, f: Frame, s: number, mirror: number, stride: number, bob: number, flash: boolean, alpha: number) {
+    const hip = f.base * 0.46;
+    const part = (clip: [number, number, number, number], tf: () => void) => {
+      ctx.save();
+      ctx.scale(mirror * s, s);
+      ctx.beginPath();
+      ctx.rect(...clip);
+      ctx.clip();
+      tf();
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(f.img, -f.footX, -f.base, f.w, f.h);
+      if (flash) {
+        ctx.globalAlpha = alpha * 0.75;
+        ctx.drawImage(f.white, -f.footX, -f.base, f.w, f.h);
+      }
+      ctx.restore();
+    };
+    const left = -f.footX - 2, right = f.w - f.footX + 2;
+    // perna de trás e perna da frente, cada uma girando em torno do quadril
+    part([left, -hip, -left, hip + 4], () => {
+      ctx.translate(0, -hip);
+      ctx.transform(1, 0, stride, 1, 0, 0);
+      ctx.translate(0, hip);
+    });
+    part([0, -hip, right, hip + 4], () => {
+      ctx.translate(0, -hip);
+      ctx.transform(1, 0, -stride, 1, 0, 0);
+      ctx.translate(0, hip);
+    });
+    // tronco e cabeça (sobem e descem com o passo; 2 px de sobra para não abrir fresta no quadril)
+    part([left, -f.base - 8, right - left, f.base - hip + 10], () => ctx.translate(0, -bob / s));
   }
 
   draw(ctx: CanvasRenderingContext2D, camX: number, t: number) {
@@ -566,8 +627,9 @@ export class Boss extends Enemy {
         ctx.translate(0, H * 0.5);
       } else ctx.rotate(ps.rot * this.facing);
       ctx.scale(ps.sx, ps.sy);
-      const face = this.bdef.face;
-      drawSprite(ctx, f, 0, 0, s, { facing: face === 0 ? 1 : this.facing * face, flash, alpha: a });
+      const mirror = this.facing * this.bdef.face;
+      if (!ps.stride || spinning) drawSprite(ctx, f, 0, 0, s, { facing: mirror, flash, alpha: a });
+      else this.drawWalking(ctx, f, s, mirror, ps.stride, ps.bob, flash, a);
       ctx.restore();
     };
     // rastro da investida / finta / teleporte

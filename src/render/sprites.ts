@@ -78,6 +78,52 @@ export async function loadSprites() {
 }
 
 /** Recolore quadros (matiz/saturação/brilho), preservando tons de pele. Usado para os chefes. */
+export interface Zones {
+  /** Matiz (0–360) do vermelho da faixa da cabeça (parte de cima), −1 = preto */
+  head?: number;
+  /** Matiz do uniforme (meio) */
+  body?: number;
+  /** Matiz do tênis (parte de baixo) */
+  feet?: number;
+}
+
+/**
+ * Recolore só o vermelho do uniforme do herói, por faixa de altura do quadro: cabeça (faixa), corpo (camiseta e
+ * calção) e pés (tênis). Pele, bola e branco ficam como estão.
+ */
+export function zoneVariant(key: string, base: Frame[], z: Zones) {
+  if (sprites.variants[key]) return sprites.variants[key];
+  const out = base.map((f) => {
+    const c = document.createElement('canvas');
+    c.width = f.w;
+    c.height = f.h;
+    const x = c.getContext('2d')!;
+    x.drawImage(f.img, 0, 0);
+    const data = x.getImageData(0, 0, f.w, f.h);
+    const d = data.data;
+    const top = f.base - f.h * 0; // linha do chão do quadro
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] === 0) continue;
+      const [h, s, l] = rgbToHsl(d[i], d[i + 1], d[i + 2]);
+      // só o vermelho forte do uniforme (a pele mais escura também puxa para o vermelho, mas é menos saturada)
+      if (!((h < 8 || h > 338) && s > 0.58 && l > 0.18 && l < 0.82)) continue;
+      const py = Math.floor(i / 4 / f.w);
+      // altura relativa ao chão do quadro (0 = pés, 1 = topo da cabeça), para funcionar também agachado
+      const rel = (top - py) / f.base;
+      const target = rel < 0.13 ? z.feet : rel > 0.8 ? z.head : z.body;
+      if (target === undefined) continue;
+      const [r, g, b] = target < 0 ? hslToRgb(0, 0, l * 0.35) : hslToRgb(target, s, l);
+      d[i] = r;
+      d[i + 1] = g;
+      d[i + 2] = b;
+    }
+    x.putImageData(data, 0, 0);
+    return { img: c, white: f.white, w: f.w, h: f.h, footX: f.footX, base: f.base };
+  });
+  sprites.variants[key] = out;
+  return out;
+}
+
 export function variant(key: string, base: Frame[], o: { hue?: number; sat?: number; bright?: number; keepSkin?: boolean; redOnly?: boolean }) {
   if (sprites.variants[key]) return sprites.variants[key];
   const out = base.map((f) => {

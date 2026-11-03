@@ -8,8 +8,8 @@ from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 im = Image.open(os.path.join(ROOT, 'art', 'stages-sheet.png')).convert('RGB')
-ROWS = [(0, 207), (210, 388), (394, 565), (568, 742), (745, 941)]
-COLS = [(0, 835), (837, 1672)]
+ROWS = [(0, 224), (227, 411), (414, 581), (584, 746), (748, 941)]
+COLS = [(0, 834), (838, 1672)]
 OUT = os.path.join(ROOT, 'art', 'stages_src')
 os.makedirs(OUT, exist_ok=True)
 pad = 3

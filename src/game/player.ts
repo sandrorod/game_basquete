@@ -1,5 +1,5 @@
 import { audio } from '../core/audio';
-import { FLOOR_BOTTOM, FLOOR_TOP, SIZE } from '../core/config';
+import { FLOOR_BOTTOM, FLOOR_TOP, HERO_SIZE, SIZE } from '../core/config';
 import type { Input } from '../core/input';
 import { clamp } from '../core/math';
 import { HERO } from '../data/looks';
@@ -42,6 +42,9 @@ export class Player extends Actor {
   god = false;
   /** Bônus dos itens equipados (mochila) */
   gear: GearStats = NO_GEAR;
+  /** Cor da bola e da munhequeira equipadas (mochila) */
+  ballColor?: string;
+  wristColor?: string;
   /** Quadros parado com a bola, sem mexer nos controles (truques depois de 10 s) */
   idleT = 0;
   /** Efeitos temporários dos prêmios (quadros restantes) */
@@ -58,7 +61,7 @@ export class Player extends Actor {
   constructor(x: number, y: number) {
     super(x, y, 100, HERO);
     this.name = 'STREET PLAYER';
-    this.scale = SIZE;
+    this.scale = HERO_SIZE;
   }
 
   /** Caído, nocauteado ou fora de controle (não pode ter a bola roubada) */
@@ -160,7 +163,7 @@ export class Player extends Actor {
             this.charge = Math.min(maxCharge, this.charge + 1 / 55);
           }
         }
-        if (this.st % 6 === 0 && this.charge > 0.3) w.fx.hit(this.x + this.facing * 4, this.y, 92 * this.scale, false, this.sp >= 1 && this.charge >= 1 ? '#38f6ff' : '#ffd23f');
+        if (this.st % 6 === 0 && this.charge > 0.3) w.fx.hit(this.x + this.facing * 4, this.y, 92 * this.scale, false, this.sp >= 1 && this.charge >= 1 ? '#38f6ff' : this.wristColor ?? '#ffd23f');
         if (!input.isHeld('throw') || input.wasReleased('throw')) {
           if (this.sp >= 1 && this.charge >= 1) {
             this.charge = 0;
@@ -288,6 +291,7 @@ export class Player extends Actor {
     const p = new Projectile({ x: this.x + this.facing * 14, y: this.y, z, vx: stats.vx * this.facing, kind: 'ball', fromPlayer: true, dmg: Math.round(stats.dmg * this.dmgMul), power, range: stats.range, laneTol: stats.lane });
     p.mainBall = true;
     p.ownerId = this.id;
+    if (this.ballColor === '#ff3b1f' && power === 'quick') p.glow = '#ff6a00';
     if (power === 'special') {
       p.pierce = c >= 0.7;
       p.glow = c >= 0.7 ? '#ffd23f' : '#ff9f1c';

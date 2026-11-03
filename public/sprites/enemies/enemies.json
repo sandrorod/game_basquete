@@ -2,364 +2,364 @@
  "thug": [
   {
    "file": "thug_0.png",
-   "w": 119,
-   "h": 191,
-   "footX": 57,
-   "base": 191
+   "w": 238,
+   "h": 382,
+   "footX": 114,
+   "base": 382
   },
   {
    "file": "thug_1.png",
-   "w": 58,
-   "h": 95,
-   "footX": 23,
-   "base": 95
+   "w": 116,
+   "h": 190,
+   "footX": 46,
+   "base": 190
   },
   {
    "file": "thug_2.png",
-   "w": 55,
-   "h": 83,
-   "footX": 25,
-   "base": 85
+   "w": 110,
+   "h": 166,
+   "footX": 50,
+   "base": 170
   },
   {
    "file": "thug_3.png",
-   "w": 54,
-   "h": 74,
-   "footX": 24,
-   "base": 74
+   "w": 108,
+   "h": 148,
+   "footX": 48,
+   "base": 148
   },
   {
    "file": "thug_4.png",
-   "w": 52,
-   "h": 71,
-   "footX": 22,
-   "base": 72
+   "w": 104,
+   "h": 142,
+   "footX": 44,
+   "base": 144
   }
  ],
  "runner": [
   {
    "file": "runner_0.png",
-   "w": 95,
-   "h": 189,
-   "footX": 46,
-   "base": 189
+   "w": 190,
+   "h": 378,
+   "footX": 92,
+   "base": 378
   },
   {
    "file": "runner_1.png",
-   "w": 49,
-   "h": 101,
-   "footX": 24,
-   "base": 101
+   "w": 98,
+   "h": 202,
+   "footX": 48,
+   "base": 202
   },
   {
    "file": "runner_2.png",
-   "w": 72,
-   "h": 99,
-   "footX": 29,
-   "base": 100
+   "w": 144,
+   "h": 198,
+   "footX": 58,
+   "base": 200
   },
   {
    "file": "runner_3.png",
-   "w": 59,
-   "h": 69,
-   "footX": 18,
-   "base": 69
+   "w": 118,
+   "h": 138,
+   "footX": 36,
+   "base": 138
   },
   {
    "file": "runner_4.png",
-   "w": 77,
-   "h": 67,
-   "footX": 28,
-   "base": 68
+   "w": 154,
+   "h": 134,
+   "footX": 56,
+   "base": 136
   }
  ],
  "heavy": [
   {
    "file": "heavy_0.png",
-   "w": 119,
-   "h": 191,
-   "footX": 51,
-   "base": 191
+   "w": 238,
+   "h": 382,
+   "footX": 102,
+   "base": 382
   },
   {
    "file": "heavy_1.png",
-   "w": 60,
-   "h": 101,
-   "footX": 27,
-   "base": 101
+   "w": 120,
+   "h": 202,
+   "footX": 54,
+   "base": 202
   },
   {
    "file": "heavy_2.png",
-   "w": 68,
-   "h": 87,
-   "footX": 28,
-   "base": 88
+   "w": 136,
+   "h": 174,
+   "footX": 56,
+   "base": 176
   },
   {
    "file": "heavy_3.png",
-   "w": 60,
-   "h": 76,
-   "footX": 25,
-   "base": 76
+   "w": 120,
+   "h": 152,
+   "footX": 50,
+   "base": 152
   },
   {
    "file": "heavy_4.png",
-   "w": 72,
-   "h": 74,
-   "footX": 30,
-   "base": 74
+   "w": 144,
+   "h": 148,
+   "footX": 60,
+   "base": 148
   }
  ],
  "thief": [
   {
    "file": "thief_0.png",
-   "w": 95,
-   "h": 181,
-   "footX": 47,
-   "base": 181
+   "w": 190,
+   "h": 362,
+   "footX": 94,
+   "base": 362
   },
   {
    "file": "thief_1.png",
-   "w": 75,
-   "h": 103,
-   "footX": 24,
-   "base": 103
+   "w": 150,
+   "h": 206,
+   "footX": 48,
+   "base": 206
   },
   {
    "file": "thief_2.png",
-   "w": 76,
-   "h": 95,
-   "footX": 31,
-   "base": 98
+   "w": 152,
+   "h": 190,
+   "footX": 62,
+   "base": 196
   },
   {
    "file": "thief_3.png",
-   "w": 55,
-   "h": 72,
-   "footX": 11,
-   "base": 72
+   "w": 110,
+   "h": 144,
+   "footX": 22,
+   "base": 144
   },
   {
    "file": "thief_4.png",
-   "w": 60,
-   "h": 71,
-   "footX": 24,
-   "base": 72
+   "w": 120,
+   "h": 142,
+   "footX": 48,
+   "base": 144
   }
  ],
  "shooter": [
   {
    "file": "shooter_0.png",
-   "w": 153,
-   "h": 182,
-   "footX": 61,
-   "base": 182
+   "w": 306,
+   "h": 364,
+   "footX": 122,
+   "base": 364
   },
   {
    "file": "shooter_1.png",
-   "w": 90,
-   "h": 93,
-   "footX": 27,
-   "base": 93
+   "w": 180,
+   "h": 186,
+   "footX": 54,
+   "base": 186
   },
   {
    "file": "shooter_2.png",
-   "w": 105,
-   "h": 92,
-   "footX": 28,
-   "base": 93
+   "w": 210,
+   "h": 184,
+   "footX": 56,
+   "base": 186
   },
   {
    "file": "shooter_3.png",
-   "w": 77,
-   "h": 81,
-   "footX": 25,
-   "base": 81
+   "w": 154,
+   "h": 162,
+   "footX": 50,
+   "base": 162
   },
   {
    "file": "shooter_4.png",
-   "w": 107,
-   "h": 80,
-   "footX": 25,
-   "base": 82
+   "w": 214,
+   "h": 160,
+   "footX": 50,
+   "base": 164
   }
  ],
  "defender": [
   {
    "file": "defender_0.png",
-   "w": 119,
-   "h": 189,
-   "footX": 59,
-   "base": 189
+   "w": 238,
+   "h": 378,
+   "footX": 118,
+   "base": 378
   },
   {
    "file": "defender_1.png",
-   "w": 65,
-   "h": 97,
-   "footX": 33,
-   "base": 97
+   "w": 130,
+   "h": 194,
+   "footX": 66,
+   "base": 194
   },
   {
    "file": "defender_2.png",
-   "w": 69,
-   "h": 89,
-   "footX": 35,
-   "base": 90
+   "w": 138,
+   "h": 178,
+   "footX": 70,
+   "base": 180
   },
   {
    "file": "defender_3.png",
-   "w": 65,
-   "h": 86,
-   "footX": 32,
-   "base": 86
+   "w": 130,
+   "h": 172,
+   "footX": 64,
+   "base": 172
   },
   {
    "file": "defender_4.png",
-   "w": 58,
-   "h": 85,
-   "footX": 28,
-   "base": 86
+   "w": 116,
+   "h": 170,
+   "footX": 56,
+   "base": 172
   }
  ],
  "biker": [
   {
    "file": "biker_0.png",
-   "w": 156,
-   "h": 173,
-   "footX": 82,
-   "base": 173
+   "w": 312,
+   "h": 346,
+   "footX": 164,
+   "base": 346
   },
   {
    "file": "biker_1.png",
-   "w": 94,
-   "h": 107,
-   "footX": 59,
-   "base": 107
+   "w": 188,
+   "h": 214,
+   "footX": 118,
+   "base": 214
   },
   {
    "file": "biker_2.png",
-   "w": 73,
-   "h": 90,
-   "footX": 52,
-   "base": 100
+   "w": 146,
+   "h": 180,
+   "footX": 104,
+   "base": 200
   },
   {
    "file": "biker_3.png",
-   "w": 124,
-   "h": 82,
-   "footX": 64,
-   "base": 82
+   "w": 248,
+   "h": 164,
+   "footX": 128,
+   "base": 164
   }
  ],
  "baller": [
   {
    "file": "baller_0.png",
-   "w": 111,
-   "h": 182,
-   "footX": 55,
-   "base": 182
+   "w": 222,
+   "h": 364,
+   "footX": 110,
+   "base": 364
   },
   {
    "file": "baller_1.png",
-   "w": 66,
-   "h": 99,
-   "footX": 38,
-   "base": 99
+   "w": 132,
+   "h": 198,
+   "footX": 76,
+   "base": 198
   },
   {
    "file": "baller_2.png",
-   "w": 79,
-   "h": 90,
-   "footX": 22,
-   "base": 91
+   "w": 158,
+   "h": 180,
+   "footX": 44,
+   "base": 182
   },
   {
    "file": "baller_3.png",
-   "w": 65,
-   "h": 77,
-   "footX": 42,
-   "base": 78
+   "w": 130,
+   "h": 154,
+   "footX": 84,
+   "base": 156
   },
   {
    "file": "baller_4.png",
-   "w": 52,
-   "h": 80,
-   "footX": 20,
-   "base": 80
+   "w": 104,
+   "h": 160,
+   "footX": 40,
+   "base": 160
   }
  ],
  "gangster": [
   {
    "file": "gangster_0.png",
-   "w": 101,
-   "h": 172,
-   "footX": 50,
-   "base": 172
+   "w": 202,
+   "h": 344,
+   "footX": 100,
+   "base": 344
   },
   {
    "file": "gangster_1.png",
-   "w": 61,
-   "h": 106,
-   "footX": 25,
-   "base": 108
+   "w": 122,
+   "h": 212,
+   "footX": 50,
+   "base": 216
   },
   {
    "file": "gangster_2.png",
-   "w": 62,
-   "h": 101,
-   "footX": 30,
-   "base": 101
+   "w": 124,
+   "h": 202,
+   "footX": 60,
+   "base": 202
   },
   {
    "file": "gangster_3.png",
-   "w": 66,
-   "h": 78,
-   "footX": 30,
-   "base": 78
+   "w": 132,
+   "h": 156,
+   "footX": 60,
+   "base": 156
   },
   {
    "file": "gangster_4.png",
-   "w": 61,
-   "h": 81,
-   "footX": 15,
-   "base": 81
+   "w": 122,
+   "h": 162,
+   "footX": 30,
+   "base": 162
   }
  ],
  "knife": [
   {
    "file": "knife_0.png",
-   "w": 116,
-   "h": 175,
-   "footX": 60,
-   "base": 175
+   "w": 232,
+   "h": 350,
+   "footX": 120,
+   "base": 350
   },
   {
    "file": "knife_1.png",
-   "w": 86,
-   "h": 118,
-   "footX": 35,
-   "base": 118
+   "w": 172,
+   "h": 236,
+   "footX": 70,
+   "base": 236
   },
   {
    "file": "knife_2.png",
-   "w": 99,
-   "h": 115,
-   "footX": 29,
-   "base": 120
+   "w": 198,
+   "h": 230,
+   "footX": 58,
+   "base": 240
   },
   {
    "file": "knife_3.png",
-   "w": 90,
-   "h": 77,
-   "footX": 29,
-   "base": 77
+   "w": 180,
+   "h": 154,
+   "footX": 58,
+   "base": 154
   },
   {
    "file": "knife_4.png",
-   "w": 66,
-   "h": 70,
-   "footX": 21,
-   "base": 70
+   "w": 132,
+   "h": 140,
+   "footX": 42,
+   "base": 140
   }
  ]
 }

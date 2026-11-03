@@ -16,7 +16,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'public', 'sprites', 'stages')
 SRC = os.path.join(ROOT, 'art', 'stages_src')
 # fração do painel onde começa o chão (pé das fachadas)
-GROUND = {1: 0.8, 2: 0.64, 3: 0.83, 4: 0.83, 5: 0.72, 6: 0.73, 7: 0.78, 8: 0.82, 9: 0.8, 10: 0.8}
+GROUND = {1: 0.78, 2: 0.66, 3: 0.64, 4: 0.82, 5: 0.68, 6: 0.72, 7: 0.74, 8: 0.8, 9: 0.8, 10: 0.8}
 # tela lógica: altura 360, pé das fachadas em 236 (+6 de folga, como no jogo)
 SCREEN_H, ART_GROUND = 360, 242
 

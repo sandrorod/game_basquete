@@ -11,7 +11,7 @@ import numpy as np
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-X0, Y0, X1, Y1 = 268, 0, 458, 382
+X0, Y0, X1, Y1 = 262, 0, 455, 372
 TOL = 6
 src = np.array(Image.open(os.path.join(ROOT, 'art', 'hero-sheet.png')).convert('RGB'))
 crop = src[Y0:Y1, X0:X1].copy()

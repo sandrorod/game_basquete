@@ -1,129 +1,121 @@
-"""Recorta os quadros do herói de art/hero-sheet.png (fundo azul-marinho e sombra do chão -> transparente).
-
-Gera public/sprites/hero/<animacao>_<n>.png e public/sprites/hero/hero.json (tamanho e linha dos pés).
+"""Recorta o herói de art/hero-sheet.png (folha com fundo verde) em public/sprites/hero/.
+Fundo verde (chroma key) -> transparente, com a borda verde removida das cores.
+Cada linha vira uma ou mais animações; os quadros saem dos pedaços do desenho agrupados por coluna.
+Os pés de cada quadro ficam alinhados à linha de chão da linha (base), para os quadros não "pularem".
+Também grava o desenho grande (hero_full.png) usado na tela inicial.
 Uso: python3 tools/slice_hero.py
 """
 import json
 import os
-from collections import deque
 
+import cv2
 import numpy as np
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = os.path.join(ROOT, 'art', 'hero-sheet.png')
 OUT = os.path.join(ROOT, 'public', 'sprites', 'hero')
-
-im = np.array(Image.open(SRC).convert('RGB')).astype(int)
-H, W, _ = im.shape
-r, b = im[..., 0], im[..., 2]
-mx = im.max(2)
-# fundo: escuro e azulado (o contorno/cabelo do personagem é preto neutro ou marrom)
-bg_like = ((b - r) >= 4) & (mx < 48)
-# sombra no chão: preto neutro (só é removida perto dos pés)
-dark = mx < 42
-
-# (animação, x0, y0, x1, y1) — medido pelas faixas azuis dos títulos
-SECTIONS = [
-    ('idle', 0, 410, 592, 555), ('walk', 592, 410, 1254, 555),
-    ('run', 0, 586, 663, 723), ('walkv', 663, 586, 1254, 723),
-    ('windup', 0, 753, 583, 890), ('throw', 583, 753, 1254, 890),
-    ('hurt', 0, 921, 629, 1061), ('pushed', 629, 921, 1254, 1061),
-    ('celebrate', 0, 1092, 606, 1254), ('ko', 606, 1092, 1254, 1254),
+im = np.array(Image.open(os.path.join(ROOT, 'art', 'hero-sheet.png')).convert('RGB')).astype(int)
+# faixas da folha: (x0, y0, x1, y1) -> nomes das animações em ordem (quantos quadros cada uma pega)
+ROWS = [
+    ((570, 4, 1536, 205), [('walknb', 1), ('walk', 6)], 0.84),    # anda batendo bola (desenhada maior na folha)
+    ((570, 208, 1536, 370), [('cross', 6)]),                     # drible baixo (correndo com a bola)
+    ((570, 374, 1536, 536), [('idle', 1), ('legs', 4), ('stand', 1), ('spin', 2)]),
+    ((0, 539, 1536, 690), [('run', 11)]),
+    ((0, 690, 1536, 862), [('windup', 5), ('shoot', 2), ('throw', 3), ('catch', 2)]),
+    ((0, 862, 1536, 1024), [('celebrate', 4), ('ko', 7)]),
 ]
+FULL = (355, 0, 570, 455)
 
 
-def runs(occ, min_gap=4, min_w=14):
-    """Faixas de colunas ocupadas, separadas por colunas vazias."""
-    out, start, gap = [], None, 0
-    for x, v in enumerate(occ):
-        if v:
-            if start is None:
-                start = x
-            gap = 0
-            end = x
-        elif start is not None:
-            gap += 1
-            if gap >= min_gap:
-                if end - start + 1 >= min_w:
-                    out.append((start, end))
-                start = None
-    if start is not None and end - start + 1 >= min_w:
-        out.append((start, end))
-    return out
+def key(cell):
+    """Máscara do desenho: tudo que não é o verde do fundo (com folga para o verde misturado nas bordas)."""
+    r, g, b = cell[:, :, 0], cell[:, :, 1], cell[:, :, 2]
+    green = (g > 120) & (g > r + 45) & (g > b + 45)
+    fg = (~green).astype(np.uint8)
+    fg = cv2.morphologyEx(fg, cv2.MORPH_OPEN, np.ones((2, 2), np.uint8))
+    return fg
 
 
-def flood_bg(cm):
-    """Marca como fundo só o que está ligado à borda do recorte."""
-    h, w = cm.shape
-    seen = np.zeros_like(cm)
-    q = deque()
-    for yy in range(h):
-        for xx in (0, w - 1):
-            if cm[yy, xx] and not seen[yy, xx]:
-                seen[yy, xx] = True
-                q.append((yy, xx))
-    for xx in range(w):
-        for yy in (0, h - 1):
-            if cm[yy, xx] and not seen[yy, xx]:
-                seen[yy, xx] = True
-                q.append((yy, xx))
-    while q:
-        yy, xx = q.popleft()
-        for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-            ny, nx = yy + dy, xx + dx
-            if 0 <= ny < h and 0 <= nx < w and cm[ny, nx] and not seen[ny, nx]:
-                seen[ny, nx] = True
-                q.append((ny, nx))
-    return seen
+def despill(rgb, mask):
+    """Tira o verde que vazou nas bordas: o canal verde não passa da média do vermelho e do azul."""
+    out = rgb.copy()
+    lim = np.maximum(out[:, :, 0], out[:, :, 2])
+    spill = (out[:, :, 1] > lim + 10) & (mask > 0)
+    out[:, :, 1][spill] = lim[spill] + 10
+    return out.clip(0, 255)
 
 
-os.makedirs(OUT, exist_ok=True)
+def save(rgba, fn):
+    Image.fromarray(rgba.astype(np.uint8)).save(os.path.join(OUT, fn))
+
+
+for f in os.listdir(OUT):
+    if f.endswith('.png'):
+        os.remove(os.path.join(OUT, f))
 meta = {}
-for name, sx0, sy0, sx1, sy1 in SECTIONS:
-    fg = ~bg_like[sy0:sy1, sx0:sx1]
-    # ocupação das colunas acima da faixa de sombra dos pés
-    occ = fg[: max(10, (sy1 - sy0) - 24)].sum(0) > 1
-    meta[name] = []
-    for i, (fx0, fx1) in enumerate(runs(occ)):
-        x0, x1 = max(0, sx0 + fx0 - 4), min(W, sx0 + fx1 + 5)
-        col = ~bg_like[sy0:sy1, x0:x1]
-        rows = np.nonzero(col.sum(1) > 1)[0]
-        y0, y1 = sy0 + max(0, rows.min() - 3), sy0 + min(sy1 - sy0, rows.max() + 3)
-        crop = im[y0:y1, x0:x1]
-        h, w = crop.shape[:2]
-        cm = bg_like[y0:y1, x0:x1].copy()
-        # zona dos pés: preto neutro também é fundo (sombra no chão)
-        foot_zone = int(h * 0.82)
-        cm[foot_zone:] |= dark[y0:y1, x0:x1][foot_zone:]
-        bgm = flood_bg(cm)
-        alpha = np.where(bgm, 0, 255)
-        rgba = np.dstack([crop, alpha]).astype(np.uint8)
-        # tira o fiapo da linha do chão: linhas de baixo só com pixels escuros
-        while rgba.shape[0] > 10:
-            row = rgba[-1]
-            vis = row[..., 3] > 0
-            if vis.any() and (row[vis][:, :3].max(1) < 70).mean() > 0.9:
-                rgba = rgba[:-1]
-            elif not vis.any():
-                rgba = rgba[:-1]
-            else:
-                break
-        # corta as bordas vazias
-        ys, xs = np.nonzero(rgba[..., 3])
-        rgba = rgba[ys.min(): ys.max() + 1, xs.min(): xs.max() + 1]
-        fname = f'{name}_{i}.png'
-        Image.fromarray(rgba).save(os.path.join(OUT, fname))
-        top_in_sheet = y0 + int(ys.min())
-        a = rgba[..., 3]
-        cols = np.nonzero(a[int(a.shape[0] * 0.88):].sum(0))[0]
-        foot = int((cols.min() + cols.max()) / 2) if len(cols) else a.shape[1] // 2
-        meta[name].append({'file': fname, 'w': int(rgba.shape[1]), 'h': int(rgba.shape[0]), 'footX': foot, '_top': top_in_sheet})
-    # linha do chão da seção = pé mais baixo entre os quadros; cada quadro guarda a distância até ela
-    ground = max(f['_top'] + f['h'] for f in meta[name])
-    for f in meta[name]:
-        f['base'] = int(ground - f.pop('_top'))
+for row in ROWS:
+    (x0, y0, x1, y1), names = row[0], row[1]
+    k_scale = row[2] if len(row) > 2 else 1.0
+    cell = im[y0:y1, x0:x1]
+    fg = key(cell)
+    n, lab, st, _ = cv2.connectedComponentsWithStats(fg, 8)
+    big = st[1:, cv2.CC_STAT_AREA].max()
+    comps = sorted([[st[i, 0], st[i, 0] + st[i, 2], [i]] for i in range(1, n) if st[i, cv2.CC_STAT_AREA] >= max(12, big * 0.004)])
+    frames = []
+    for c in comps:
+        # pedaço que cai dentro da coluna de um quadro (bola, mão, cabelo) entra nele
+        if frames and c[0] < frames[-1][1] - 6:
+            frames[-1][1] = max(frames[-1][1], c[1])
+            frames[-1][2] += c[2]
+        else:
+            frames.append(c)
+    areas = [sum(st[i, cv2.CC_STAT_AREA] for i in f[2]) for f in frames]
+    # pedaços pequenos que sobraram sozinhos (bola entre dois quadros) vão para o vizinho mais perto
+    body = [f for f, a in zip(frames, areas) if a > max(areas) * 0.2]
+    for f, a in zip(frames, areas):
+        if a <= max(areas) * 0.2:
+            near = min(body, key=lambda b: min(abs(b[0] - f[1]), abs(f[0] - b[1])))
+            near[2] += f[2]
+    boxes = []
+    for _, _, ids in body:
+        m = np.isin(lab, ids)
+        ys, xs = np.nonzero(m)
+        boxes.append((xs.min(), xs.max() + 1, ys.min(), ys.max() + 1, m))
+    want = sum(c for _, c in names)
+    assert len(boxes) == want, (names, len(boxes), [(b[0], b[1] - b[0], b[3] - b[2]) for b in boxes])
+    ground = max(b[3] for b in boxes)
+    i = 0
+    for name, count in names:
+        meta[name] = []
+        for k in range(count):
+            bx0, bx1, by0, by1, m = boxes[i]
+            i += 1
+            mm = m[by0:by1, bx0:bx1]
+            rgb = despill(cell[by0:by1, bx0:bx1], mm)
+            rgba = np.dstack([rgb, mm * 255]).astype(np.uint8)
+            if k_scale != 1.0:
+                pil = Image.fromarray(rgba)
+                rgba = np.array(pil.resize((round(pil.width * k_scale), round(pil.height * k_scale)), Image.LANCZOS))
+                rgba[:, :, 3] = np.where(rgba[:, :, 3] > 110, 255, 0)
+                mm = rgba[:, :, 3] > 0
+            fn = f'{name}_{k}.png'
+            save(rgba, fn)
+            a = mm > 0
+            foot = a[int(a.shape[0] * 0.85):]
+            cols = np.nonzero(foot.any(0))[0]
+            meta[name].append({'file': fn, 'w': int(rgba.shape[1]), 'h': int(rgba.shape[0]), 'footX': int((cols.min() + cols.max()) / 2), 'base': int(round((ground - by0) * k_scale))})
+        print(name, count, [(f['w'], f['h']) for f in meta[name]])
+json.dump(meta, open(os.path.join(OUT, 'hero.json'), 'w'), indent=1)
 
-with open(os.path.join(OUT, 'hero.json'), 'w') as f:
-    json.dump(meta, f, indent=1)
-print({k: len(v) for k, v in meta.items()})
+# desenho grande para a tela inicial
+x0, y0, x1, y1 = FULL
+cell = im[y0:y1, x0:x1]
+fg = key(cell)
+n, lab, st, _ = cv2.connectedComponentsWithStats(fg, 8)
+bigc = 1 + int(np.argmax(st[1:, cv2.CC_STAT_AREA]))
+m = lab == bigc
+ys, xs = np.nonzero(m)
+mm = m[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+rgba = np.dstack([despill(cell[ys.min():ys.max() + 1, xs.min():xs.max() + 1], mm), mm * 255])
+save(rgba, 'hero_full.png')
+print('hero_full', rgba.shape)

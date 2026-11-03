@@ -1,122 +1,122 @@
 {
  "burger": {
   "file": "burger.png",
-  "w": 230,
-  "h": 216,
-  "footX": 115
+  "w": 460,
+  "h": 432,
+  "footX": 230
  },
  "fries": {
   "file": "fries.png",
-  "w": 300,
-  "h": 217,
-  "footX": 150
+  "w": 600,
+  "h": 434,
+  "footX": 300
  },
  "pizza": {
   "file": "pizza.png",
-  "w": 252,
-  "h": 212,
-  "footX": 126
+  "w": 504,
+  "h": 424,
+  "footX": 252
  },
  "soda": {
   "file": "soda.png",
-  "w": 307,
-  "h": 241,
-  "footX": 153
+  "w": 614,
+  "h": 482,
+  "footX": 306
  },
  "star": {
   "file": "star.png",
-  "w": 222,
-  "h": 213,
-  "footX": 111
+  "w": 444,
+  "h": 426,
+  "footX": 222
  },
  "coin": {
   "file": "coin.png",
-  "w": 211,
-  "h": 211,
-  "footX": 105
+  "w": 422,
+  "h": 422,
+  "footX": 210
  },
  "diamond": {
   "file": "diamond.png",
-  "w": 307,
-  "h": 189,
-  "footX": 153
+  "w": 614,
+  "h": 378,
+  "footX": 306
  },
  "heart": {
   "file": "heart.png",
-  "w": 213,
-  "h": 182,
-  "footX": 106
+  "w": 426,
+  "h": 364,
+  "footX": 212
  },
  "lightning": {
   "file": "lightning.png",
-  "w": 241,
-  "h": 207,
-  "footX": 120
+  "w": 482,
+  "h": 414,
+  "footX": 240
  },
  "trophy": {
   "file": "trophy.png",
-  "w": 231,
-  "h": 226,
-  "footX": 115
+  "w": 462,
+  "h": 452,
+  "footX": 230
  },
  "gift": {
   "file": "gift.png",
-  "w": 228,
-  "h": 215,
-  "footX": 114
+  "w": 456,
+  "h": 430,
+  "footX": 228
  },
  "medkit": {
   "file": "medkit.png",
-  "w": 307,
-  "h": 184,
-  "footX": 153
+  "w": 614,
+  "h": 368,
+  "footX": 306
  },
  "potion_blue": {
   "file": "potion_blue.png",
-  "w": 252,
-  "h": 219,
-  "footX": 126
+  "w": 504,
+  "h": 438,
+  "footX": 252
  },
  "potion_purple": {
   "file": "potion_purple.png",
-  "w": 243,
-  "h": 251,
-  "footX": 121
+  "w": 486,
+  "h": 502,
+  "footX": 242
  },
  "crown": {
   "file": "crown.png",
-  "w": 225,
-  "h": 228,
-  "footX": 112
+  "w": 450,
+  "h": 456,
+  "footX": 224
  },
  "rocket": {
   "file": "rocket.png",
-  "w": 233,
-  "h": 224,
-  "footX": 116
+  "w": 466,
+  "h": 448,
+  "footX": 232
  },
  "glove": {
   "file": "glove.png",
-  "w": 226,
-  "h": 206,
-  "footX": 113
+  "w": 452,
+  "h": 412,
+  "footX": 226
  },
  "mushroom": {
   "file": "mushroom.png",
-  "w": 206,
-  "h": 186,
-  "footX": 103
+  "w": 412,
+  "h": 372,
+  "footX": 206
  },
  "shield": {
   "file": "shield.png",
-  "w": 206,
-  "h": 218,
-  "footX": 103
+  "w": 412,
+  "h": 436,
+  "footX": 206
  },
  "magnet": {
   "file": "magnet.png",
-  "w": 203,
-  "h": 207,
-  "footX": 101
+  "w": 406,
+  "h": 414,
+  "footX": 202
  }
 }
