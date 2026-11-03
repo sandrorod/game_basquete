@@ -1,4 +1,4 @@
-import { FLOOR_TOP, H, W } from '../core/config';
+import { ART_FLOOR, H, W } from '../core/config';
 import { rng, shade, type Rng } from '../core/math';
 import type { ThemeId } from '../data/stages';
 import { drawSprite, sprites } from './sprites';
@@ -14,6 +14,20 @@ export interface StageArt {
   live?: (ctx: CanvasRenderingContext2D, camX: number, t: number) => void;
   /** Cenário vindo do painel do modelo (sem camada de fundo separada) */
   panel?: boolean;
+  /** Sobra de cenário antes do início e depois do fim da fase (preenche as laterais de telas largas) */
+  pad?: number;
+}
+
+/** Sobra lateral dos cenários: cobre as faixas de telas até 21:9 */
+export const ART_PAD = 220;
+
+/** Desenha o cenário da faixa de tela [x0, x1) (pode passar das bordas 0..W, nas laterais de telas largas) */
+export function drawNear(ctx: CanvasRenderingContext2D, art: StageArt, camX: number, x0 = 0, x1 = W) {
+  const pad = art.pad ?? 0;
+  const maxX = art.near.width / R;
+  const sx0 = Math.max(0, camX + pad + x0), sx1 = Math.min(maxX, camX + pad + x1);
+  if (sx1 <= sx0) return;
+  ctx.drawImage(art.near, sx0 * R, 0, (sx1 - sx0) * R, H * R, sx0 - camX - pad, 0, sx1 - sx0, H);
 }
 
 function canvas(w: number, h: number) {
@@ -104,17 +118,17 @@ function graffiti(ctx: CanvasRenderingContext2D, x: number, y: number, r: Rng, p
 
 /** Chão: faixa da calçada + piso; `tile` desenha juntas inclinadas (efeito de perspectiva) */
 function floor(ctx: CanvasRenderingContext2D, w: number, top: string, bottom: string, opts: { curb?: string; curbH?: number; tile?: number; lines?: string; dash?: string; dashY?: number; noise?: string } = {}, r?: Rng) {
-  ctx.fillStyle = grad(ctx, FLOOR_TOP, H, [[0, top], [1, bottom]]);
-  ctx.fillRect(0, FLOOR_TOP, w, H - FLOOR_TOP);
+  ctx.fillStyle = grad(ctx, ART_FLOOR, H, [[0, top], [1, bottom]]);
+  ctx.fillRect(0, ART_FLOOR, w, H - ART_FLOOR);
   if (opts.curb) {
-    rect(ctx, 0, FLOOR_TOP, w, opts.curbH ?? 10, opts.curb);
+    rect(ctx, 0, ART_FLOOR, w, opts.curbH ?? 10, opts.curb);
     ctx.fillStyle = shade(opts.curb, -0.3);
-    ctx.fillRect(0, FLOOR_TOP + (opts.curbH ?? 10), w, 2);
+    ctx.fillRect(0, ART_FLOOR + (opts.curbH ?? 10), w, 2);
   }
   if (opts.tile) {
     ctx.strokeStyle = opts.lines ?? 'rgba(0,0,0,0.15)';
     ctx.lineWidth = 1;
-    const y0 = FLOOR_TOP + (opts.curbH ?? 0);
+    const y0 = ART_FLOOR + (opts.curbH ?? 0);
     for (let x = -100; x < w + 100; x += opts.tile) {
       ctx.beginPath();
       ctx.moveTo(x, y0);
@@ -134,12 +148,12 @@ function floor(ctx: CanvasRenderingContext2D, w: number, top: string, bottom: st
   }
   if (opts.noise && r) {
     ctx.fillStyle = opts.noise;
-    for (let i = 0; i < w / 4; i++) ctx.fillRect(r.range(0, w), r.range(FLOOR_TOP + 4, H), r.range(1, 3), 1);
+    for (let i = 0; i < w / 4; i++) ctx.fillRect(r.range(0, w), r.range(ART_FLOOR + 4, H), r.range(1, 3), 1);
   }
 }
 
 function lampPost(ctx: CanvasRenderingContext2D, x: number, glow = '#ffe9a8') {
-  rect(ctx, x - 2, 90, 4, FLOOR_TOP - 86, '#2b2f36');
+  rect(ctx, x - 2, 90, 4, ART_FLOOR - 86, '#2b2f36');
   rect(ctx, x - 2, 90, 22, 4, '#2b2f36');
   ctx.fillStyle = glow;
   ctx.beginPath();
@@ -258,7 +272,7 @@ function cracks(ctx: CanvasRenderingContext2D, w: number, r: Rng, puddle?: strin
   ctx.strokeStyle = 'rgba(0,0,0,0.25)';
   ctx.lineWidth = 0.8;
   for (let i = 0; i < w / 160; i++) {
-    let x = r.range(0, w), y = r.range(FLOOR_TOP + 20, H - 6);
+    let x = r.range(0, w), y = r.range(ART_FLOOR + 20, H - 6);
     ctx.beginPath();
     ctx.moveTo(x, y);
     for (let k = 0; k < 5; k++) {
@@ -272,7 +286,7 @@ function cracks(ctx: CanvasRenderingContext2D, w: number, r: Rng, puddle?: strin
     for (let i = 0; i < w / 500; i++) {
       ctx.fillStyle = puddle;
       ctx.beginPath();
-      ctx.ellipse(r.range(0, w), r.range(FLOOR_TOP + 40, H - 10), r.range(14, 30), r.range(3, 6), 0, 0, Math.PI * 2);
+      ctx.ellipse(r.range(0, w), r.range(ART_FLOOR + 40, H - 10), r.range(14, 30), r.range(3, 6), 0, 0, Math.PI * 2);
       ctx.fill();
     }
   }
@@ -284,27 +298,27 @@ type Decor = { name: string; h: number; y: number; every: [number, number]; chan
 
 const DECOR: Partial<Record<ThemeId, Decor[]>> = {
   streets: [
-    { name: 'lamp', h: 118, y: FLOOR_TOP + 4, every: [380, 460], glow: 'rgba(255,233,168,0.32)' },
-    { name: 'traffic_light', h: 74, y: FLOOR_TOP + 6, every: [700, 950] },
-    { name: 'sign_stop', h: 62, y: FLOOR_TOP + 4, every: [600, 900], chance: 0.7 },
-    { name: 'sign_oneway', h: 58, y: FLOOR_TOP + 4, every: [700, 1000], chance: 0.7 },
+    { name: 'lamp', h: 118, y: ART_FLOOR + 4, every: [380, 460], glow: 'rgba(255,233,168,0.32)' },
+    { name: 'traffic_light', h: 74, y: ART_FLOOR + 6, every: [700, 950] },
+    { name: 'sign_stop', h: 62, y: ART_FLOOR + 4, every: [600, 900], chance: 0.7 },
+    { name: 'sign_oneway', h: 58, y: ART_FLOOR + 4, every: [700, 1000], chance: 0.7 },
     { name: 'ac_unit', h: 26, y: 150, every: [260, 420], chance: 0.8 },
-    { name: 'bike_red', h: 32, y: FLOOR_TOP + 2, every: [600, 900], chance: 0.8 },
-    { name: 'hydrant_post', h: 30, y: FLOOR_TOP + 8, every: [500, 800], chance: 0.6 },
-    { name: 'bollard', h: 20, y: FLOOR_TOP + 13, every: [90, 140], chance: 0.5 },
+    { name: 'bike_red', h: 32, y: ART_FLOOR + 2, every: [600, 900], chance: 0.8 },
+    { name: 'hydrant_post', h: 30, y: ART_FLOOR + 8, every: [500, 800], chance: 0.6 },
+    { name: 'bollard', h: 20, y: ART_FLOOR + 13, every: [90, 140], chance: 0.5 },
     { name: 'manhole', h: 12, y: 316, every: [420, 640], flat: true },
   ],
   subway: [
     { name: 'electric_box', h: 46, y: 210, every: [500, 800], chance: 0.8 },
     { name: 'vending', h: 64, y: 212, every: [600, 900] },
-    { name: 'bollard', h: 20, y: FLOOR_TOP + 42, every: [120, 200], chance: 0.5 },
+    { name: 'bollard', h: 20, y: ART_FLOOR + 42, every: [120, 200], chance: 0.5 },
   ],
   industrial: [
-    { name: 'pallet', h: 22, y: FLOOR_TOP + 2, every: [300, 520] },
-    { name: 'spool', h: 30, y: FLOOR_TOP + 2, every: [500, 800], chance: 0.8 },
-    { name: 'crates_stack', h: 40, y: FLOOR_TOP + 2, every: [500, 800], chance: 0.8 },
-    { name: 'electric_box', h: 46, y: FLOOR_TOP + 2, every: [600, 900], chance: 0.7 },
-    { name: 'pole_a', h: 140, y: FLOOR_TOP + 2, every: [700, 1000] },
+    { name: 'pallet', h: 22, y: ART_FLOOR + 2, every: [300, 520] },
+    { name: 'spool', h: 30, y: ART_FLOOR + 2, every: [500, 800], chance: 0.8 },
+    { name: 'crates_stack', h: 40, y: ART_FLOOR + 2, every: [500, 800], chance: 0.8 },
+    { name: 'electric_box', h: 46, y: ART_FLOOR + 2, every: [600, 900], chance: 0.7 },
+    { name: 'pole_a', h: 140, y: ART_FLOOR + 2, every: [700, 1000] },
   ],
   beach: [
     { name: 'umbrella_red', h: 58, y: 236, every: [500, 800], chance: 0.8 },
@@ -313,29 +327,29 @@ const DECOR: Partial<Record<ThemeId, Decor[]>> = {
     { name: 'sign_ped', h: 52, y: 234, every: [800, 1100], chance: 0.6 },
   ],
   night: [
-    { name: 'lamp', h: 118, y: FLOOR_TOP + 4, every: [360, 440], glow: 'rgba(190,240,255,0.3)' },
-    { name: 'traffic_light', h: 74, y: FLOOR_TOP + 6, every: [700, 950] },
-    { name: 'vending', h: 62, y: FLOOR_TOP + 2, every: [600, 900], chance: 0.8 },
-    { name: 'moto_black', h: 38, y: FLOOR_TOP + 4, every: [600, 900], chance: 0.8 },
-    { name: 'pole_b', h: 150, y: FLOOR_TOP + 4, every: [800, 1100] },
+    { name: 'lamp', h: 118, y: ART_FLOOR + 4, every: [360, 440], glow: 'rgba(190,240,255,0.3)' },
+    { name: 'traffic_light', h: 74, y: ART_FLOOR + 6, every: [700, 950] },
+    { name: 'vending', h: 62, y: ART_FLOOR + 2, every: [600, 900], chance: 0.8 },
+    { name: 'moto_black', h: 38, y: ART_FLOOR + 4, every: [600, 900], chance: 0.8 },
+    { name: 'pole_b', h: 150, y: ART_FLOOR + 4, every: [800, 1100] },
     { name: 'manhole', h: 12, y: 318, every: [420, 640], flat: true },
     { name: 'grate', h: 12, y: 290, every: [500, 800], flat: true, chance: 0.7 },
   ],
   court: [
-    { name: 'vending', h: 62, y: FLOOR_TOP + 2, every: [700, 1000] },
-    { name: 'bike_red', h: 32, y: FLOOR_TOP + 2, every: [500, 800], chance: 0.8 },
-    { name: 'bike_green', h: 32, y: FLOOR_TOP + 2, every: [600, 900], chance: 0.6 },
+    { name: 'vending', h: 62, y: ART_FLOOR + 2, every: [700, 1000] },
+    { name: 'bike_red', h: 32, y: ART_FLOOR + 2, every: [500, 800], chance: 0.8 },
+    { name: 'bike_green', h: 32, y: ART_FLOOR + 2, every: [600, 900], chance: 0.6 },
   ],
   chinatown: [
-    { name: 'bike_green', h: 32, y: FLOOR_TOP + 2, every: [500, 800], chance: 0.8 },
-    { name: 'crates_stack', h: 38, y: FLOOR_TOP + 2, every: [500, 800], chance: 0.8 },
+    { name: 'bike_green', h: 32, y: ART_FLOOR + 2, every: [500, 800], chance: 0.8 },
+    { name: 'crates_stack', h: 38, y: ART_FLOOR + 2, every: [500, 800], chance: 0.8 },
     { name: 'ac_unit', h: 24, y: 96, every: [260, 420], chance: 0.7 },
-    { name: 'hydrant', h: 26, y: FLOOR_TOP + 6, every: [700, 1000], chance: 0.6 },
+    { name: 'hydrant', h: 26, y: ART_FLOOR + 6, every: [700, 1000], chance: 0.6 },
   ],
   underground: [
     { name: 'electric_box', h: 46, y: 196, every: [500, 800], chance: 0.8 },
     { name: 'sign_oneway', h: 56, y: 198, every: [700, 1000] },
-    { name: 'bollard', h: 22, y: FLOOR_TOP + 4, every: [110, 180], chance: 0.6 },
+    { name: 'bollard', h: 22, y: ART_FLOOR + 4, every: [110, 180], chance: 0.6 },
     { name: 'grate', h: 12, y: 310, every: [500, 800], flat: true },
   ],
   rooftop: [
@@ -373,36 +387,21 @@ function decorate(ctx: CanvasRenderingContext2D, theme: ThemeId, length: number,
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Altura (fração do painel) onde começa o chão em cada cenário do modelo */
-const PANEL_GROUND: Record<number, number> = { 1: 0.86, 2: 0.78, 3: 0.8, 4: 0.8, 5: 0.7, 6: 0.8, 7: 0.82, 8: 0.64, 9: 0.76, 10: 0.8 };
 const THEME_STAGE: Record<ThemeId, number> = { streets: 1, subway: 2, industrial: 3, beach: 4, night: 5, court: 6, chinatown: 7, underground: 8, rooftop: 9, arena: 10 };
-/** Linha (unidades lógicas) onde o chão do painel encontra a rua jogável */
-const PANEL_GROUND_Y = FLOOR_TOP + 6;
 
 /**
- * Cenário a partir do painel do modelo: a parte de cima vai até o início da rua; o chão do painel é
- * esticado em perspectiva até a base da tela. O painel se repete ao longo da fase com emenda suave.
+ * Cenário a partir do painel do modelo. A imagem já vem pronta (tools/prepare_stages.py): painel em alta
+ * resolução com o chão estendido em perspectiva, na proporção da tela. Aqui só escala por igual (sem esticar)
+ * e repete ao longo da fase com emenda suave.
  */
 function buildPanelArt(img: HTMLImageElement, n: number, length: number): StageArt {
-  const g = PANEL_GROUND[n] ?? 0.8;
-  const pw = img.width, ph = img.height;
-  const groundSrc = ph * g;
-  const k = PANEL_GROUND_Y / groundSrc; // escala da parte de cima
-  const tileW = pw * k;
+  const k = H / img.height;
+  const tileW = img.width * k;
   const overlap = 70;
-  // pinta o painel (parte de cima + chão esticado em perspectiva) a partir de x
   const paint = (t: CanvasRenderingContext2D, x: number) => {
     t.imageSmoothingEnabled = true;
     t.imageSmoothingQuality = 'high';
-    t.drawImage(img, 0, 0, pw, groundSrc, x, 0, tileW, PANEL_GROUND_Y);
-    const slices = 18;
-    const srcH = ph - groundSrc;
-    for (let i = 0; i < slices; i++) {
-      const a0 = i / slices, a1 = (i + 1) / slices;
-      const dy0 = PANEL_GROUND_Y + (H - PANEL_GROUND_Y) * a0 * a0;
-      const dy1 = PANEL_GROUND_Y + (H - PANEL_GROUND_Y) * a1 * a1;
-      t.drawImage(img, 0, groundSrc + srcH * a0, pw, srcH / slices, x, dy0, tileW, dy1 - dy0 + 0.6);
-    }
+    t.drawImage(img, 0, 0, img.width, img.height, x, 0, tileW, H);
   };
   // repetição com a borda esquerda em degradê (emenda suave com a anterior)
   const tile = canvas(tileW, H);
@@ -418,12 +417,15 @@ function buildPanelArt(img: HTMLImageElement, n: number, length: number): StageA
   tile.ctx.fillRect(0, 0, tileW, H);
   tile.ctx.restore();
 
-  const near = canvas(length, H);
+  // sobra dos dois lados (ART_PAD) para preencher as laterais de telas largas
+  const total = length + ART_PAD * 2;
+  const near = canvas(total, H);
   const nctx = near.ctx;
   paint(nctx, 0);
-  for (let x = tileW - overlap; x < length; x += tileW - overlap) nctx.drawImage(tile.c, 0, 0, tile.c.width, tile.c.height, x, 0, tileW, H);
+  for (let x = tileW - overlap; x < total; x += tileW - overlap) nctx.drawImage(tile.c, 0, 0, tile.c.width, tile.c.height, x, 0, tileW, H);
   const far = canvas(1, 1);
-  return { far: far.c, near: near.c, live: n === 10 ? arenaLights : undefined, panel: true };
+  void n;
+  return { far: far.c, near: near.c, panel: true, pad: ART_PAD };
 }
 
 function arenaLights(ctx: CanvasRenderingContext2D, _camX: number, t: number) {
@@ -451,7 +453,7 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
   const panel = sprites.stages[THEME_STAGE[theme]];
   if (panel) return buildPanelArt(panel, THEME_STAGE[theme], length);
   const farW = W + (length - W) * FAR_PARALLAX + 4;
-  const far = canvas(farW, FLOOR_TOP);
+  const far = canvas(farW, ART_FLOOR);
   const near = canvas(length, H);
   const r = rng(seed);
   const f = far.ctx, n = near.ctx;
@@ -459,8 +461,8 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
 
   switch (theme) {
     case 'streets': {
-      f.fillStyle = grad(f, 0, FLOOR_TOP, [[0, '#2b2d5c'], [0.55, '#e0745a'], [1, '#ffc27a']]);
-      f.fillRect(0, 0, farW, FLOOR_TOP);
+      f.fillStyle = grad(f, 0, ART_FLOOR, [[0, '#2b2d5c'], [0.55, '#e0745a'], [1, '#ffc27a']]);
+      f.fillRect(0, 0, farW, ART_FLOOR);
       f.fillStyle = 'rgba(255,220,150,0.9)';
       f.beginPath();
       f.arc(farW * 0.6, 120, 26, 0, Math.PI * 2);
@@ -474,15 +476,15 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
         const w = r.range(150, 230);
         const top = r.range(30, 70);
         const c = r.pick(bricks);
-        brickWall(n, x, top, w, FLOOR_TOP - top, c, r);
+        brickWall(n, x, top, w, ART_FLOOR - top, c, r);
         cornice(n, x, top - 8, w, '#cdbfa6');
         if (r.chance(0.45)) archWindows(n, x + 6, top + 14, w - 12, 3, '#3b4a5e', '#d8cdb8', r, '#ffd98a');
         else windowsGrid(n, x + 6, top + 12, w - 12, 90, '#3b4a5e', '#d8cdb8', r, '#ffd98a');
         // loja com porta de aço
         const sx = x + 14, sw = w - 28;
-        rect(n, sx, 168, sw, FLOOR_TOP - 168, '#6c7380', '#2a2a2a');
+        rect(n, sx, 168, sw, ART_FLOOR - 168, '#6c7380', '#2a2a2a');
         n.fillStyle = '#596070';
-        for (let ly = 172; ly < FLOOR_TOP; ly += 5) n.fillRect(sx + 2, ly, sw - 4, 2);
+        for (let ly = 172; ly < ART_FLOOR; ly += 5) n.fillRect(sx + 2, ly, sw - 4, 2);
         awning(n, sx - 6, 150, sw + 12, r.pick(['#2d6a4f', '#9d0208', '#1d3557', '#6a4c93', '#e76f51']));
         if (r.chance(0.8)) graffiti(n, sx + r.range(4, sw - 70), r.range(196, 222), r, ['#ff5d8f', '#4cc9f0', '#f9c74f', '#90be6d', '#f3722c']);
         // escada de incêndio
@@ -500,16 +502,16 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
         x += w;
       }
       floor(n, length, '#8a8d92', '#3c3f45', { curb: '#a9acb1', curbH: 14, tile: 46, dash: '#e9c46a', dashY: 304, noise: 'rgba(0,0,0,0.2)' }, r);
-      curb(n, length, FLOOR_TOP + 14, '#a9acb1');
+      curb(n, length, ART_FLOOR + 14, '#a9acb1');
       cracks(n, length, r, 'rgba(60,70,90,0.35)');
       break;
     }
     case 'subway': {
-      f.fillStyle = grad(f, 0, FLOOR_TOP, [[0, '#0d1117'], [1, '#1c2330']]);
-      f.fillRect(0, 0, farW, FLOOR_TOP);
+      f.fillStyle = grad(f, 0, ART_FLOOR, [[0, '#0d1117'], [1, '#1c2330']]);
+      f.fillRect(0, 0, farW, ART_FLOOR);
       for (let x = 0; x < farW; x += 90) {
         f.fillStyle = 'rgba(255,240,180,0.08)';
-        f.fillRect(x, 0, 30, FLOOR_TOP);
+        f.fillRect(x, 0, 30, ART_FLOOR);
       }
       // parede de azulejos com painéis
       rect(n, 0, 0, length, 40, '#20262e');
@@ -553,17 +555,17 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
       }
       // trilhos na faixa de trás (onde o trem passa)
       floor(n, length, '#575c63', '#2e3238', { tile: 40, noise: 'rgba(255,255,255,0.08)' }, r);
-      rect(n, 0, FLOOR_TOP, length, 28, '#2a2520');
-      for (let x = 0; x < length; x += 12) rect(n, x, FLOOR_TOP + 4, 7, 20, '#4a3b2d');
-      rect(n, 0, FLOOR_TOP + 7, length, 3, '#9aa0a6');
-      rect(n, 0, FLOOR_TOP + 19, length, 3, '#9aa0a6');
-      rect(n, 0, FLOOR_TOP + 28, length, 6, '#f2c94c');
-      for (let x = 0; x < length; x += 24) rect(n, x, FLOOR_TOP + 28, 12, 6, '#2a2a2a');
+      rect(n, 0, ART_FLOOR, length, 28, '#2a2520');
+      for (let x = 0; x < length; x += 12) rect(n, x, ART_FLOOR + 4, 7, 20, '#4a3b2d');
+      rect(n, 0, ART_FLOOR + 7, length, 3, '#9aa0a6');
+      rect(n, 0, ART_FLOOR + 19, length, 3, '#9aa0a6');
+      rect(n, 0, ART_FLOOR + 28, length, 6, '#f2c94c');
+      for (let x = 0; x < length; x += 24) rect(n, x, ART_FLOOR + 28, 12, 6, '#2a2a2a');
       break;
     }
     case 'industrial': {
-      f.fillStyle = grad(f, 0, FLOOR_TOP, [[0, '#59606b'], [0.6, '#a39b8b'], [1, '#c9b79c']]);
-      f.fillRect(0, 0, farW, FLOOR_TOP);
+      f.fillStyle = grad(f, 0, ART_FLOOR, [[0, '#59606b'], [0.6, '#a39b8b'], [1, '#c9b79c']]);
+      f.fillRect(0, 0, farW, ART_FLOOR);
       for (let x = 30; x < farW; x += r.range(90, 160)) {
         rect(f, x, 60, 14, 120, '#4b4f56');
         f.fillStyle = 'rgba(220,220,220,0.35)';
@@ -579,16 +581,16 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
         const w = r.range(170, 260);
         const c = r.pick(['#7d8590', '#8a7f6e', '#6e7a72', '#7a6e66']);
         // galpão de metal ondulado
-        rect(n, x, 50, w, FLOOR_TOP - 50, c);
+        rect(n, x, 50, w, ART_FLOOR - 50, c);
         n.fillStyle = shade(c, -0.15);
-        for (let gx = x; gx < x + w; gx += 6) n.fillRect(gx, 50, 2, FLOOR_TOP - 50);
+        for (let gx = x; gx < x + w; gx += 6) n.fillRect(gx, 50, 2, ART_FLOOR - 50);
         n.fillStyle = shade(c, -0.4);
         n.beginPath();
         n.moveTo(x - 4, 52);
         n.lineTo(x + w / 2, 26);
         n.lineTo(x + w + 4, 52);
         n.fill();
-        rect(n, x + w / 2 - 40, 140, 80, FLOOR_TOP - 140, '#3b3f45', '#1e1e1e');
+        rect(n, x + w / 2 - 40, 140, 80, ART_FLOOR - 140, '#3b3f45', '#1e1e1e');
         n.fillStyle = '#f2c94c';
         for (let i = 0; i < 8; i++) {
           n.save();
@@ -617,8 +619,8 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
         n.fill();
       }
       for (let x2 = 0; x2 < length; x2 += 40) {
-        rect(n, x2, FLOOR_TOP, 20, 6, '#f2c94c');
-        rect(n, x2 + 20, FLOOR_TOP, 20, 6, '#222');
+        rect(n, x2, ART_FLOOR, 20, 6, '#f2c94c');
+        rect(n, x2 + 20, ART_FLOOR, 20, 6, '#222');
       }
       break;
     }
@@ -644,21 +646,21 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
       for (let x = 0; x <= farW; x += 40) f.lineTo(x, 150 - Math.abs(Math.sin(x * 0.01)) * 18);
       f.lineTo(farW, 160);
       f.fill();
-      f.fillStyle = grad(f, 160, FLOOR_TOP, [[0, '#1e88c7'], [1, '#48c6e0']]);
-      f.fillRect(0, 160, farW, FLOOR_TOP - 160);
+      f.fillStyle = grad(f, 160, ART_FLOOR, [[0, '#1e88c7'], [1, '#48c6e0']]);
+      f.fillRect(0, 160, farW, ART_FLOOR - 160);
       // calçadão: grade, coqueiros e quiosques
-      n.fillStyle = grad(n, 150, FLOOR_TOP, [[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0)']]);
+      n.fillStyle = grad(n, 150, ART_FLOOR, [[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0)']]);
       for (let x = 60; x < length; x += r.range(160, 260)) {
         // coqueiro
         n.strokeStyle = '#8b5a2b';
         n.lineWidth = 7;
         n.beginPath();
-        n.moveTo(x, FLOOR_TOP);
+        n.moveTo(x, ART_FLOOR);
         n.quadraticCurveTo(x + 18, 150, x + 6, 70);
         n.stroke();
         n.strokeStyle = '#6b4220';
         n.lineWidth = 1;
-        for (let ty = 80; ty < FLOOR_TOP; ty += 10) {
+        for (let ty = 80; ty < ART_FLOOR; ty += 10) {
           n.beginPath();
           n.moveTo(x - 2, ty);
           n.lineTo(x + 12, ty + 2);
@@ -688,7 +690,7 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
       // tábuas do calçadão em cima, areia embaixo
       floor(n, length, '#c79a63', '#a77a45', {}, r);
       n.strokeStyle = 'rgba(80,50,20,0.5)';
-      for (let y = FLOOR_TOP + 6; y < 286; y += 6) {
+      for (let y = ART_FLOOR + 6; y < 286; y += 6) {
         n.beginPath();
         n.moveTo(0, y);
         n.lineTo(length, y);
@@ -710,8 +712,8 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
       break;
     }
     case 'night': {
-      f.fillStyle = grad(f, 0, FLOOR_TOP, [[0, '#06061a'], [1, '#2b1650']]);
-      f.fillRect(0, 0, farW, FLOOR_TOP);
+      f.fillStyle = grad(f, 0, ART_FLOOR, [[0, '#06061a'], [1, '#2b1650']]);
+      f.fillRect(0, 0, farW, ART_FLOOR);
       f.fillStyle = '#ffffff';
       for (let i = 0; i < 120; i++) f.fillRect(r.range(0, farW), r.range(0, 120), 1, 1);
       skyline(f, r, farW, 210, '#140f2c', 90, 190, '#ffd76a', 0.35);
@@ -720,11 +722,11 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
       while (x < length) {
         const w = r.range(160, 240);
         const c = r.pick(['#1f1b33', '#2a1f3d', '#1b2433', '#2b1b2b']);
-        rect(n, x, 40, w, FLOOR_TOP - 40, c);
+        rect(n, x, 40, w, ART_FLOOR - 40, c);
         cornice(n, x, 32, w, '#4a4266');
         if (r.chance(0.4)) archWindows(n, x + 6, 52, w - 12, 3, '#14102a', '#3a3352', r, '#ffcf6b');
         else windowsGrid(n, x + 6, 50, w - 12, 100, '#14102a', '#3a3352', r, '#ffcf6b');
-        rect(n, x + 10, 170, w - 20, FLOOR_TOP - 170, '#0f0c1d', '#000');
+        rect(n, x + 10, 170, w - 20, ART_FLOOR - 170, '#0f0c1d', '#000');
         const text = r.pick(['CLUB 88', 'HOTEL', 'BAR', 'LIVE', 'DISCO', 'PIZZA', 'ARCADE', 'OPEN 24H']);
         const color = r.pick(['#ff3fd2', '#38f6ff', '#ffe14d', '#7cff6b', '#ff6b3d']);
         neons.push({ x: x + 20, y: 148, text, color });
@@ -732,7 +734,7 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
       }
       for (const ne of neons) sign(n, ne.x, ne.y, ne.text, '#0a0814', ne.color, ne.color, 12);
       floor(n, length, '#2c2f3a', '#14151c', { curb: '#3e4252', curbH: 12, dash: '#f2f2f2', dashY: 308 }, r);
-      curb(n, length, FLOOR_TOP + 12, '#3e4252');
+      curb(n, length, ART_FLOOR + 12, '#3e4252');
       cracks(n, length, r, 'rgba(120,160,255,0.12)');
       // reflexos na rua molhada
       for (const ne of neons) {
@@ -754,8 +756,8 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
       break;
     }
     case 'court': {
-      f.fillStyle = grad(f, 0, FLOOR_TOP, [[0, '#7fc8f8'], [1, '#f9e0a8']]);
-      f.fillRect(0, 0, farW, FLOOR_TOP);
+      f.fillStyle = grad(f, 0, ART_FLOOR, [[0, '#7fc8f8'], [1, '#f9e0a8']]);
+      f.fillRect(0, 0, farW, ART_FLOOR);
       skyline(f, r, farW, 150, '#8aa1b1', 40, 110, '#dbe8f0', 0.2);
       for (let x = 0; x < farW; x += r.range(20, 40)) {
         f.fillStyle = r.pick(['#3a7d44', '#2f6b3a', '#4a8f50']);
@@ -763,10 +765,10 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
         f.arc(x, 160, r.range(14, 24), 0, Math.PI * 2);
         f.fill();
       }
-      rect(f, 0, 165, farW, FLOOR_TOP - 165, '#4a8f50');
+      rect(f, 0, 165, farW, ART_FLOOR - 165, '#4a8f50');
       // muro grafitado + arquibancada + alambrado
       for (let x = 0; x < length; x += 260) {
-        brickWall(n, x, 120, 260, FLOOR_TOP - 120, '#7a6f8f', r);
+        brickWall(n, x, 120, 260, ART_FLOOR - 120, '#7a6f8f', r);
         graffiti(n, x + r.range(10, 150), r.range(160, 200), r, ['#ff006e', '#ffbe0b', '#3a86ff', '#8338ec', '#fb5607']);
         if (r.chance(0.6)) {
           for (let row = 0; row < 4; row++) rect(n, x + 150, 190 + row * 11, 100, 6, '#9aa5b1', '#4b5563');
@@ -782,11 +784,11 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
         n.lineTo(x, 110);
         n.stroke();
       }
-      for (let x = 0; x < length; x += 140) rect(n, x, 36, 4, FLOOR_TOP - 36, '#3d3d3d');
+      for (let x = 0; x < length; x += 140) rect(n, x, 36, 4, ART_FLOOR - 36, '#3d3d3d');
       rect(n, 0, 36, length, 4, '#3d3d3d');
       // cestas
       for (let x = 350; x < length; x += 700) {
-        rect(n, x, 70, 5, FLOOR_TOP - 70, '#444');
+        rect(n, x, 70, 5, ART_FLOOR - 70, '#444');
         rect(n, x - 26, 60, 56, 38, '#ffffff', '#222');
         rect(n, x - 8, 72, 20, 14, 'rgba(0,0,0,0)', '#e63946');
         n.strokeStyle = '#ff6b00';
@@ -804,22 +806,22 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
         }
       }
       floor(n, length, '#c0604a', '#9c4a3a', {}, r);
-      rect(n, 0, FLOOR_TOP, length, 6, '#f1f1f1');
+      rect(n, 0, ART_FLOOR, length, 6, '#f1f1f1');
       n.strokeStyle = '#f1f1f1';
       n.lineWidth = 2.5;
       for (let x = 350; x < length; x += 700) {
         n.beginPath();
-        n.ellipse(x, FLOOR_TOP + 6, 150, 70, 0, 0, Math.PI);
+        n.ellipse(x, ART_FLOOR + 6, 150, 70, 0, 0, Math.PI);
         n.stroke();
-        n.strokeRect(x - 34, FLOOR_TOP + 6, 68, 70);
+        n.strokeRect(x - 34, ART_FLOOR + 6, 68, 70);
         n.fillStyle = 'rgba(30,60,140,0.35)';
-        n.fillRect(x - 34, FLOOR_TOP + 6, 68, 70);
+        n.fillRect(x - 34, ART_FLOOR + 6, 68, 70);
       }
       break;
     }
     case 'chinatown': {
-      f.fillStyle = grad(f, 0, FLOOR_TOP, [[0, '#3b1d5a'], [0.6, '#c2456b'], [1, '#f6a26b']]);
-      f.fillRect(0, 0, farW, FLOOR_TOP);
+      f.fillStyle = grad(f, 0, ART_FLOOR, [[0, '#3b1d5a'], [0.6, '#c2456b'], [1, '#f6a26b']]);
+      f.fillRect(0, 0, farW, ART_FLOOR);
       for (let x = 20; x < farW; x += r.range(80, 140)) {
         const h = r.range(60, 120);
         rect(f, x, 200 - h, 50, h + 10, '#4a2040');
@@ -838,7 +840,7 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
       while (x < length) {
         const w = r.range(150, 220);
         const c = r.pick(['#8c1c13', '#1d5c4a', '#7a2e1a', '#5a1a2e']);
-        rect(n, x, 50, w, FLOOR_TOP - 50, c);
+        rect(n, x, 50, w, ART_FLOOR - 50, c);
         windowsGrid(n, x + 6, 70, w - 12, 70, '#2b1b10', '#d4a017', r, '#ffb347');
         // telhado curvo
         n.fillStyle = '#2a1712';
@@ -851,7 +853,7 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
         // toldo de restaurante
         const ac = r.pick(['#e63946', '#f4a261', '#2a9d8f']);
         for (let k = 0; k < (w - 20) / 14; k++) rect(n, x + 10 + k * 14, 150, 14, 18, k % 2 ? ac : '#fff5e1');
-        rect(n, x + 14, 168, w - 28, FLOOR_TOP - 168, '#2b1b10', '#111');
+        rect(n, x + 14, 168, w - 28, ART_FLOOR - 168, '#2b1b10', '#111');
         sign(n, x + 20, 112, r.pick(['DRAGON HOUSE', 'TEA ROOM', 'NOODLES', 'LUCKY STAR', 'JADE GARDEN']), '#d4a017', '#5a0a0a', undefined, 10);
         lanterns.push({ x: x + w * 0.3, y: 140 }, { x: x + w * 0.75, y: 140 });
         x += w;
@@ -874,23 +876,23 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
         rect(n, lx - 3, 147, 6, 2, '#d4a017');
       }
       floor(n, length, '#7d7068', '#4e4540', { tile: 28, lines: 'rgba(0,0,0,0.3)', curb: '#9a8c82', curbH: 8 }, r);
-      curb(n, length, FLOOR_TOP + 8, '#9a8c82');
+      curb(n, length, ART_FLOOR + 8, '#9a8c82');
       cracks(n, length, r);
       break;
     }
     case 'underground': {
       f.fillStyle = '#15171b';
-      f.fillRect(0, 0, farW, FLOOR_TOP);
-      for (let x = 0; x < farW; x += 60) rect(f, x, 30, 18, FLOOR_TOP - 30, '#22252b');
+      f.fillRect(0, 0, farW, ART_FLOOR);
+      for (let x = 0; x < farW; x += 60) rect(f, x, 30, 18, ART_FLOOR - 30, '#22252b');
       rect(n, 0, 0, length, 34, '#2a2d33');
       rect(n, 0, 34, length, 6, '#1d1f24');
-      rect(n, 0, 40, length, FLOOR_TOP - 40, '#5b5f66');
+      rect(n, 0, 40, length, ART_FLOOR - 40, '#5b5f66');
       n.fillStyle = '#4e5259';
-      for (let y = 60; y < FLOOR_TOP; y += 30) n.fillRect(0, y, length, 1);
+      for (let y = 60; y < ART_FLOOR; y += 30) n.fillRect(0, y, length, 1);
       rect(n, 0, 196, length, 40, '#46494f');
       for (let x = 0; x < length; x += 30) rect(n, x, 196, 15, 6, '#f2c94c');
       for (let x = 30; x < length; x += 220) {
-        rect(n, x, 34, 34, FLOOR_TOP - 34, '#8a8e95', '#2a2a2a');
+        rect(n, x, 34, 34, ART_FLOOR - 34, '#8a8e95', '#2a2a2a');
         rect(n, x, 120, 34, 26, '#f2c94c');
         n.fillStyle = '#111';
         n.font = 'bold 16px "Arial Black", Arial';
@@ -904,8 +906,8 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
         n.fillStyle = 'rgba(200,250,255,0.06)';
         n.beginPath();
         n.moveTo(x + 80, 40);
-        n.lineTo(x + 40, FLOOR_TOP);
-        n.lineTo(x + 190, FLOOR_TOP);
+        n.lineTo(x + 40, ART_FLOOR);
+        n.lineTo(x + 190, ART_FLOOR);
         n.lineTo(x + 150, 40);
         n.fill();
       }
@@ -918,7 +920,7 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
       n.lineWidth = 2;
       for (let x = 0; x < length; x += 90) {
         n.beginPath();
-        n.moveTo(x, FLOOR_TOP + 4);
+        n.moveTo(x, ART_FLOOR + 4);
         n.lineTo(x - 20, 290);
         n.stroke();
       }
@@ -926,10 +928,10 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
       break;
     }
     case 'rooftop': {
-      f.fillStyle = grad(f, 0, FLOOR_TOP, [[0, '#0b1d3a'], [0.5, '#5a3e85'], [1, '#ff8c69']]);
-      f.fillRect(0, 0, farW, FLOOR_TOP);
-      skyline(f, r, farW, FLOOR_TOP, '#26214a', 100, 200, '#ffd56b', 0.3);
-      skyline(f, r, farW, FLOOR_TOP, '#1b1838', 40, 120, '#ffb46b', 0.2);
+      f.fillStyle = grad(f, 0, ART_FLOOR, [[0, '#0b1d3a'], [0.5, '#5a3e85'], [1, '#ff8c69']]);
+      f.fillRect(0, 0, farW, ART_FLOOR);
+      skyline(f, r, farW, ART_FLOOR, '#26214a', 100, 200, '#ffd56b', 0.3);
+      skyline(f, r, farW, ART_FLOOR, '#1b1838', 40, 120, '#ffb46b', 0.2);
       // parapeito e equipamentos
       for (let x = 0; x < length; x += r.range(120, 200)) {
         if (r.chance(0.5)) {
@@ -988,8 +990,8 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
       break;
     }
     case 'arena': {
-      f.fillStyle = grad(f, 0, FLOOR_TOP, [[0, '#07070f'], [1, '#1d1a33']]);
-      f.fillRect(0, 0, farW, FLOOR_TOP);
+      f.fillStyle = grad(f, 0, ART_FLOOR, [[0, '#07070f'], [1, '#1d1a33']]);
+      f.fillRect(0, 0, farW, ART_FLOOR);
       // público nas arquibancadas
       for (let row = 0; row < 12; row++) {
         const y = 70 + row * 12;
@@ -1027,18 +1029,18 @@ export function buildStageArt(theme: ThemeId, length: number, seed: number): Sta
         n.shadowBlur = 0;
       }
       // quadra de madeira
-      n.fillStyle = grad(n, FLOOR_TOP, H, [[0, '#d9a066'], [1, '#b97a45']]);
-      n.fillRect(0, FLOOR_TOP, length, H - FLOOR_TOP);
+      n.fillStyle = grad(n, ART_FLOOR, H, [[0, '#d9a066'], [1, '#b97a45']]);
+      n.fillRect(0, ART_FLOOR, length, H - ART_FLOOR);
       n.strokeStyle = 'rgba(120,70,30,0.35)';
       n.lineWidth = 1;
-      for (let y = FLOOR_TOP + 6; y < H; y += 7) {
+      for (let y = ART_FLOOR + 6; y < H; y += 7) {
         n.beginPath();
         n.moveTo(0, y);
         n.lineTo(length, y);
         n.stroke();
       }
       for (let x = 0; x < length; x += 60) {
-        for (let y = FLOOR_TOP; y < H; y += 14) {
+        for (let y = ART_FLOOR; y < H; y += 14) {
           n.beginPath();
           n.moveTo(x + ((y / 14) % 2) * 30, y);
           n.lineTo(x + ((y / 14) % 2) * 30, y + 7);

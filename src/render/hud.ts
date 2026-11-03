@@ -149,7 +149,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, d: HudData) {
   // carga do arremesso especial
   if (d.charge > 0) {
     bar(ctx, W / 2 - 40, H - 22, 80, 6, d.charge, d.charge, d.charge >= 1 ? ['#ffffff', '#ffd23f'] : ['#ffd23f', '#ff8a3d']);
-    text(ctx, d.charge >= 1 ? 'MÁX!' : 'CARGA', W / 2, H - 26, 6, '#ffd23f', 'center');
+    text(ctx, d.charge >= 1 ? (d.sp >= 1 ? 'SUPER!' : 'MÁX!') : 'TURBO', W / 2, H - 26, 6, '#ffd23f', 'center');
   }
 
   // GO ▸

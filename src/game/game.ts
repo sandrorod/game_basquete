@@ -6,7 +6,7 @@ import { gearStats, itemById } from '../data/shop';
 import { STAGES } from '../data/stages';
 import { text } from '../render/hud';
 import { drawHeroSprite, setHeroOutfit } from '../render/spriteAnim';
-import { buildStageArt, FAR_PARALLAX, ART_SCALE, type StageArt } from '../render/backgrounds';
+import { buildStageArt, drawNear, FAR_PARALLAX, ART_SCALE, type StageArt } from '../render/backgrounds';
 import { Effects } from '../render/effects';
 import { World } from './world';
 
@@ -236,6 +236,20 @@ export class Game {
     inp.endFrame();
   }
 
+  /** Laterais de telas mais largas que 16:9: continua o cenário (sem personagens), um pouco mais escuro */
+  drawSides(ctx: CanvasRenderingContext2D, extra: number) {
+    if (extra < 1) return;
+    const titleScreen = this.state === 'title' || (this.state === 'gameover' && !this.world);
+    const art = titleScreen ? this.titleArt : this.world?.art;
+    if (!art) return;
+    const camX = titleScreen ? (this.t * 0.6) % (3400 - W) : this.world!.camX;
+    drawNear(ctx, art, camX, -extra, 0);
+    drawNear(ctx, art, camX, W, W + extra);
+    ctx.fillStyle = titleScreen ? 'rgba(5,5,20,0.7)' : 'rgba(0,0,0,0.35)';
+    ctx.fillRect(-extra, 0, extra, H);
+    ctx.fillRect(W, 0, extra, H);
+  }
+
   draw(ctx: CanvasRenderingContext2D) {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, W, H);
@@ -245,7 +259,7 @@ export class Game {
       this.titleArt ??= buildStageArt('night', 3400, 5);
       const camX = (t * 0.6) % (3400 - W);
       if (!this.titleArt.panel) ctx.drawImage(this.titleArt.far, camX * FAR_PARALLAX * ART_SCALE, 0, W * ART_SCALE, 236 * ART_SCALE, 0, 0, W, 236);
-      ctx.drawImage(this.titleArt.near, camX * ART_SCALE, 0, W * ART_SCALE, H * ART_SCALE, 0, 0, W, H);
+      drawNear(ctx, this.titleArt, camX);
       this.titleArt.live?.(ctx, camX, t);
       ctx.fillStyle = 'rgba(5,5,20,0.55)';
       ctx.fillRect(0, 0, W, H);

@@ -2,7 +2,7 @@
 window.__runBot = function ({ god = false, startStage = 0, maxStages = 10, maxFramesPerStage = 60 * 60 * 6 } = {}) {
   const g = window.__game;
   const inp = g.input;
-  const acts = ['up', 'down', 'left', 'right', 'throw', 'strong', 'special', 'run', 'confirm'];
+  const acts = ['up', 'down', 'left', 'right', 'throw', 'run', 'confirm'];
   g.newGame(startStage);
   const report = [];
   let stuck = 0, lastX = 0, stageFrames = 0, stage = g.stageIdx, livesAtStart = g.lives, dodgeT = 0, dodgeDir = 'up';
@@ -19,6 +19,9 @@ window.__runBot = function ({ god = false, startStage = 0, maxStages = 10, maxFr
     }
     stageFrames++;
     if (stageFrames > maxFramesPerStage) { report.push({ stage: stage + 1, result: 'TIMEOUT', frames: stageFrames, boss: w && w.bossPhase, px: w && Math.round(w.player.x), waves: w && w.waves.map((x) => x.cleared) }); break; }
+    // segura o arremesso para o turbo quando tem poder (barra cheia: até a carga máxima = SUPER)
+    const holding = w && g.state === 'play' && w.player.state === 'charge' && w.player.sp >= 0.33 && w.player.charge < (w.player.sp >= 1 ? 1 : 0.6) && w.player.st < 80;
+    if (holding) { inp.press('throw'); g.update(); stageFrames++; continue; }
     if (w && g.state === 'play') {
       const p = w.player;
       p.god = god;
@@ -44,7 +47,7 @@ window.__runBot = function ({ god = false, startStage = 0, maxStages = 10, maxFr
         else if (Math.abs(dx) > 230) inp.press(dx > 0 ? 'right' : 'left');
         else if ((dx > 0) !== (p.facing > 0)) inp.press(dx > 0 ? 'right' : 'left');
         if (Math.abs(dy) < 11 && (dx > 0) === (p.facing > 0) && !close) {
-          if (p.ball === 'hand') inp.press(p.sp >= 1 ? 'special' : f % 4 === 0 ? 'strong' : 'throw');
+          if (p.ball === 'hand') inp.press('throw');
         }
         if (p.ball === 'stolen' && Math.abs(dy) < 10) { inp.press(dx > 0 ? 'right' : 'left'); inp.press('throw'); }
       } else {
@@ -53,11 +56,12 @@ window.__runBot = function ({ god = false, startStage = 0, maxStages = 10, maxFr
         else {
           // vão do telhado à frente: vai para a outra metade da rua antes de passar
           const gap = w.gaps.find((gp) => gp.x0 - p.x < 170 && gp.x1 + 20 > p.x);
-          const safeY = gap ? (gap.y0 < 260 ? 322 : 258) : null;
+          // passa pelo lado livre do vão (o chão andável vai de ~272 a 348)
+          const safeY = gap ? (gap.y1 < 330 ? Math.min(344, gap.y1 + 12) : Math.max(276, gap.y0 - 12)) : null;
           if (safeY !== null && Math.abs(p.y - safeY) > 6) { inp.press(p.y < safeY ? 'down' : 'up'); if (gap.x0 - p.x > 50) inp.press('right'); }
           else inp.press('right');
           if (Math.abs(p.x - lastX) < 0.3 && p.state !== 'windup') stuck++; else stuck = 0;
-          if (stuck > 20) { detour = 40; detourDir = p.y > 292 ? 'up' : 'down'; stuck = 0; }
+          if (stuck > 20) { detour = 40; detourDir = p.y > 310 ? 'up' : 'down'; stuck = 0; }
           // quebra o que estiver na frente
           const ob = w.obstacles.find((o) => !o.broken && o.breakable && Math.abs(o.y - p.y) < 14 && o.x > p.x && o.x - p.x < 120);
           if (ob && p.ball === 'hand') inp.press('throw');

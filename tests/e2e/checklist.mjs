@@ -93,11 +93,11 @@ try {
   check(6, 'A bola acerta os inimigos corretamente', hp1 < hp0, `ESPAÇO: energia ${hp0} → ${hp1}`);
   const score1 = await page.evaluate(() => window.__game.world.score);
   for (let i = 0; i < 12; i++) {
-    await page.keyboard.press(i % 3 === 2 ? 'KeyJ' : 'Space');
+    await page.keyboard.press('Space');
     await page.waitForTimeout(260);
   }
   const hp2 = await page.evaluate(() => window.__game.world.enemies.find((e) => !e.isBoss)?.hp ?? 0);
-  check(7, 'A energia dos inimigos diminui conforme os acertos', hp2 < hp1, `${hp1} → ${hp2} (rápido + forte com J)`);
+  check(7, 'A energia dos inimigos diminui conforme os acertos', hp2 < hp1, `${hp1} → ${hp2} (arremessos com ESPAÇO)`);
   await page.waitForTimeout(1500);
   const left = await page.evaluate(() => window.__game.world.enemies.length);
   check(8, 'Os inimigos desaparecem quando derrotados', left === 0, `inimigos na tela: ${left}`);
@@ -163,24 +163,28 @@ try {
   await play(page, 0);
   // o arremesso turbo (K) gasta a barra de poder: começa com 80%
   await page.evaluate(() => { const w = window.__game.world; w.player.sp = 0.8; w.waves.forEach((x) => { x.spawned = true; x.cleared = true; x.queue = []; }); });
-  await page.keyboard.down('KeyK');
+  await page.keyboard.down('Space');
   await page.waitForTimeout(900);
   const charging = await page.evaluate(() => ({ s: window.__game.world.player.state, c: window.__game.world.player.charge }));
-  await page.keyboard.up('KeyK');
+  await page.keyboard.up('Space');
   await page.waitForTimeout(80);
   const special = await page.evaluate(() => window.__game.world.projectiles.find((p) => p.mainBall)?.power);
   await page.waitForFunction(() => window.__game.world.player.ball === 'hand' && window.__game.world.player.state === 'idle', null, { timeout: 5000 });
+  // toque rápido no ESPAÇO: arremesso normal (o botão FORTE e a tecla J não existem mais)
+  await page.keyboard.press('Space');
+  await page.waitForTimeout(120);
+  const tap = await page.evaluate(() => window.__game.world.projectiles.find((p) => p.mainBall)?.power);
+  await page.waitForFunction(() => window.__game.world.player.ball === 'hand' && window.__game.world.player.state === 'idle', null, { timeout: 5000 });
   await page.keyboard.press('KeyJ');
-  // o arremesso forte tem preparação (~0,2 s) antes de soltar a bola
   await page.waitForTimeout(380);
-  const strong = await page.evaluate(() => window.__game.world.projectiles.find((p) => p.mainBall)?.power);
+  const jDoesNothing = await page.evaluate(() => !window.__game.world.projectiles.some((p) => p.mainBall));
   await page.keyboard.press('Escape');
   await page.waitForTimeout(200);
   const paused = await page.evaluate(() => ({ s: window.__game.state, menu: document.querySelector('#ui h2')?.textContent }));
   await page.keyboard.press('Escape');
   await page.waitForTimeout(200);
   const resumed = await page.evaluate(() => window.__game.state);
-  check(14, 'Os controles funcionam no computador', charging.s === 'charge' && charging.c > 0.5 && special === 'special' && strong === 'strong', `K segurado carrega (${Math.round(charging.c * 100)}%, estado ${charging.s}) e solta: ${special}; J: ${strong}`);
+  check(14, 'Os controles funcionam no computador', charging.s === 'charge' && charging.c > 0.5 && special === 'special' && tap === 'quick' && jDoesNothing, `ESPAÇO segurado carrega o turbo (${Math.round(charging.c * 100)}%, estado ${charging.s}) e solta: ${special}; toque: ${tap}; J sem função: ${jDoesNothing}`);
   check(19, 'O sistema de pausa funciona', paused.s === 'paused' && paused.menu === 'PAUSA' && resumed === 'play', `ESC → ${paused.s} (menu "${paused.menu}") → ESC → ${resumed}`);
 
   // ── Vidas ───────────────────────────────────────────────────────
@@ -202,7 +206,7 @@ try {
   const goScreen = lives.state === 'gameover' && lives.screen === 'FIM DE JOGO';
 
   // ── Progressão e vitória (robô invencível no jogo inteiro) ───────
-  const run = await page.evaluate(() => window.__runBot({ god: true, maxFramesPerStage: 60 * 60 * 10 }));
+  const run = await page.evaluate(() => window.__runBot({ god: true, maxFramesPerStage: 60 * 60 * 14 }));
   const cleared = run.report.filter((x) => x.result === 'clear').length;
   const victoryText = await page.evaluate(() => document.querySelector('#ui .win')?.textContent ?? '');
   check(17, 'A progressão entre as fases funciona', cleared === 9 && run.finalState === 'victory', `${cleared} fases concluídas em sequência + chefe final (${run.report.map((x) => `F${x.stage} ${Math.round(x.frames / 3600 * 10) / 10}min`).join(', ')})`);
@@ -228,24 +232,27 @@ try {
     const returnDmg = hpBefore - mid.hp;
     mid.remove = true;
     for (let i = 0; i < 5; i++) g.update();
-    // turbo da bola (K): sem poder não carrega; com poder carrega, arremessa e gasta
+    // turbo (segurando o botão de arremesso): sem poder não carrega; com poder carrega, arremessa e gasta
     for (let i = 0; i < 120 && p.ball !== 'hand'; i++) g.update();
     p.sp = 0;
-    g.input.press('special'); g.update();
-    const chargeWithout = p.state === 'charge';
-    g.input.release('special');
-    for (let i = 0; i < 50; i++) g.update();
-    p.sp = 0.6;
-    g.input.press('special');
+    g.input.press('throw');
     for (let i = 0; i < 40; i++) g.update();
-    const chargeWith = p.state === 'charge';
-    g.input.release('special');
+    const chargeWithout = p.charge > 0;
+    g.input.release('throw');
+    for (let i = 0; i < 3; i++) g.update();
+    const tapBall = w.projectiles.find((q) => q.mainBall)?.power;
+    for (let i = 0; i < 120 && !(p.ball === 'hand' && p.state === 'idle'); i++) g.update();
+    p.sp = 0.6;
+    g.input.press('throw');
+    for (let i = 0; i < 40; i++) g.update();
+    const chargeWith = p.state === 'charge' && p.charge > 0.3;
+    g.input.release('throw');
     for (let i = 0; i < 3; i++) g.update();
     const turboBall = w.projectiles.find((q) => q.mainBall)?.power;
-    return { returnDmg, chargeWithout, chargeWith, turboBall, spAfter: p.sp };
+    return { returnDmg, chargeWithout, chargeWith, turboBall, tapBall, spAfter: p.sp };
   });
   check(21, 'A bola também causa dano quando volta', extra.returnDmg > 0, `inimigo no caminho de volta perdeu ${extra.returnDmg} de energia`);
-  check(22, 'O turbo usa a barra de poder', !extra.chargeWithout && extra.chargeWith && extra.turboBall === 'special' && extra.spAfter < 0.45, `sem poder não carrega; com 60% arremessou (${extra.turboBall}) e ficou com ${Math.round(extra.spAfter * 100)}%`);
+  check(22, 'O turbo usa a barra de poder', !extra.chargeWithout && extra.tapBall === 'quick' && extra.chargeWith && extra.turboBall === 'special' && extra.spAfter < 0.45, `segurando ESPAÇO sem poder: arremesso normal (${extra.tapBall}); com 60% carregou o turbo (${extra.turboBall}) e ficou com ${Math.round(extra.spAfter * 100)}%`);
 
   // ── Prêmios, loja, mochila, continue e ranking ──────────────────
   const meta = await page.evaluate(() => {
@@ -315,7 +322,7 @@ try {
   await page.waitForTimeout(150);
   const thrown = await page.evaluate(() => window.__game.world.projectiles.some((p) => p.mainBall) || window.__game.world.player.state === 'throw');
   await page.screenshot({ path: path.join(import.meta.dirname, 'mobile.png') });
-  check(15, 'Os controles funcionam em dispositivos móveis', touchOn && after.x > before.x + 10 && after.y < before.y && thrown, `analógico moveu (+${Math.round(after.x - before.x)}, ${Math.round(after.y - before.y)}), botão THROW arremessou`);
+  check(15, 'Os controles funcionam em dispositivos móveis', touchOn && after.x > before.x + 10 && after.y < before.y && thrown, `analógico moveu (+${Math.round(after.x - before.x)}, ${Math.round(after.y - before.y)}), botão LANÇAR arremessou`);
   await page.close();
 } catch (err) {
   console.error('ERRO NO TESTE:', err);

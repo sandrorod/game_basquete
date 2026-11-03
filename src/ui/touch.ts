@@ -5,8 +5,6 @@ export function setupTouch(root: HTMLElement, input: Input, onPause: () => void)
   root.innerHTML = `
     <div class="stick"><div class="knob"></div></div>
     <div class="tbtn tb-throw" data-a="throw">LANÇAR</div>
-    <div class="tbtn tb-strong" data-a="strong">FORTE</div>
-    <div class="tbtn tb-special" data-a="special">TURBO</div>
     <div class="tbtn tb-run" data-a="run">CORRER</div>
     <div class="tbtn tb-pause" data-p="1">II</div>`;
   const stick = root.querySelector<HTMLElement>('.stick')!;

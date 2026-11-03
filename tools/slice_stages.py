@@ -1,4 +1,4 @@
-"""Recorta os 10 cenários de art/stages-sheet.png em public/sprites/stages/stage_<n>.png.
+"""Recorta os 10 cenários de art/stages-sheet.png em art/stages_src/stage_<n>.png (depois: upscale_stages.py e prepare_stages.py).
 Ordem do modelo: coluna da esquerda = fases 1,3,5,7,9; coluna da direita = fases 2,4,6,8,10.
 Uso: python3 tools/slice_stages.py
 """
@@ -8,11 +8,11 @@ from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 im = Image.open(os.path.join(ROOT, 'art', 'stages-sheet.png')).convert('RGB')
-ROWS = [(0, 200), (203, 376), (379, 546), (549, 728), (732, 941)]
-COLS = [(0, 834), (837, 1672)]
-OUT = os.path.join(ROOT, 'public', 'sprites', 'stages')
+ROWS = [(0, 207), (210, 388), (394, 565), (568, 742), (745, 941)]
+COLS = [(0, 835), (837, 1672)]
+OUT = os.path.join(ROOT, 'art', 'stages_src')
 os.makedirs(OUT, exist_ok=True)
-pad = 2
+pad = 3
 for ci, (x0, x1) in enumerate(COLS):
     for ri, (y0, y1) in enumerate(ROWS):
         n = ri * 2 + ci + 1

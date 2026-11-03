@@ -105,8 +105,8 @@ export function heroScale() {
 /** Desenha o herói (com a bola quicando quando está com ela e se movendo/parado) */
 export function drawHeroSprite(ctx: CanvasRenderingContext2D, x: number, y: number, p: HeroPoseInput, o: { flash?: boolean; alpha?: number; scale?: number } = {}) {
   const r = heroFrame(p);
-  // os truques vêm de outra folha: escala pela pose de pé dela (mesma altura do herói)
-  const s = (r.trick ? (HERO_HEIGHT * 1.08) / (heroSet ?? sprites.hero).spin[0].h : heroScale()) * (o.scale ?? 1);
+  // os truques já foram reduzidos para a mesma resolução dos quadros do herói (tools/slice_tricks.py)
+  const s = heroScale() * (o.scale ?? 1);
   drawSprite(ctx, r.f, x, y, s, { facing: p.facing, flash: o.flash, alpha: o.alpha });
   if (r.ball && p.hasBall) {
     // drible: a bola sobe e desce ao lado do corpo
@@ -198,9 +198,15 @@ export function enemyFrame(e: EnemyPoseInput): { idx: number; rot: number } {
   }
 }
 
-/** Escala fixa por personagem (quadro 1 = de pé): o tamanho não muda entre os quadros */
-export function enemyScale(frames: Frame[], _idx: number, height: number) {
-  return height / frames[1].base;
+/**
+ * Escala de cada quadro: no modelo, alguns quadros (corrida, ataque) foram desenhados menores que os outros.
+ * Todos ficam do tamanho do maior quadro do personagem; o limite de 1,45× evita esticar poses agachadas demais.
+ */
+export function enemyScale(frames: Frame[], idx: number, height: number, normalize = true) {
+  const ref = frames.slice(1, 5).reduce((a, f) => (f.h > a.h ? f : a), frames[1]);
+  const base = height / ref.base;
+  const f = frames[idx] ?? ref;
+  return normalize ? base * Math.min(1.45, Math.max(1, ref.h / f.h)) : base;
 }
 
 export function enemyFrames(kind: EnemyKind) {

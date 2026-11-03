@@ -1,10 +1,10 @@
 import { audio } from '../core/audio';
-import { DIFFICULTY, FLOOR_BOTTOM, FLOOR_TOP, H, SIZE, W, type Difficulty } from '../core/config';
+import { ART_FLOOR, DIFFICULTY, FLOOR_BOTTOM, FLOOR_TOP, H, SIZE, W, type Difficulty } from '../core/config';
 import type { Input } from '../core/input';
 import { clamp, rand, rng, sign } from '../core/math';
 import type { EnemyKind } from '../data/looks';
 import { STAGES, type HazardKind, type StageDef } from '../data/stages';
-import { buildStageArt, FAR_PARALLAX, ART_SCALE, type StageArt } from '../render/backgrounds';
+import { buildStageArt, drawNear, FAR_PARALLAX, ART_SCALE, type StageArt } from '../render/backgrounds';
 import { Effects } from '../render/effects';
 import { drawBall } from '../render/fighter';
 import { drawHud, text } from '../render/hud';
@@ -730,8 +730,8 @@ export class World {
     camX = Math.round(camX * 2) / 2;
     // cenário: fundo com paralaxe + rua
     const farX = camX * FAR_PARALLAX;
-    if (!this.art.panel) ctx.drawImage(this.art.far, farX * ART_SCALE, 0, W * ART_SCALE, FLOOR_TOP * ART_SCALE, 0, 0, W, FLOOR_TOP);
-    ctx.drawImage(this.art.near, camX * ART_SCALE, 0, W * ART_SCALE, H * ART_SCALE, 0, 0, W, H);
+    if (!this.art.panel) ctx.drawImage(this.art.far, farX * ART_SCALE, 0, W * ART_SCALE, ART_FLOOR * ART_SCALE, 0, 0, W, ART_FLOOR);
+    drawNear(ctx, this.art, camX);
     this.art.live?.(ctx, camX, t);
     if (scene) {
       ctx.restore();

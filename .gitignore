@@ -4,3 +4,4 @@ dist
 *.local
 tests/e2e/*.png
 *.apk
+art/stages_hd/

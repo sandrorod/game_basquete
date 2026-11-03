@@ -19,6 +19,8 @@ const DEPTH = 1.55;
 const TURBO_MIN = 0.15;
 const TURBO_PER_CHARGE = 0.3;
 const turboCost = (c: number) => TURBO_MIN + TURBO_PER_CHARGE * c;
+/** Quadros segurando o botão de arremesso até começar a carregar o turbo (antes disso é um toque) */
+const HOLD_DELAY = 10;
 
 export class Player extends Actor {
   ball: 'hand' | 'out' | 'stolen' = 'hand';
@@ -104,27 +106,15 @@ export class Player extends Actor {
 
         // Ataques
         const wantThrow = input.wasPressed('throw') || this.bufferedThrow > 0;
-        if (input.wasPressed('special')) {
-          if (this.sp >= 1) return this.startSuper(w);
-          if (this.ball === 'hand') {
-            // o turbo da bola gasta a barra de poder: sem o mínimo, não dá para usar
-            if (this.sp < TURBO_MIN) {
-              if (this.noPowerT <= 0) {
-                this.noPowerT = 45;
-                w.fx.popup(this.x, this.y - 88, 'SEM PODER', '#9fdcff', 7);
-                audio.sfx('block');
-              }
-              return;
-            }
-            this.charge = 0;
-            this.setState('charge');
-            return;
-          }
-        }
-        if (input.wasPressed('strong') && this.ball === 'hand' && this.throwCd === 0) return this.startThrow('strong');
         if (wantThrow) {
           if (this.ball === 'hand' && this.throwCd === 0) {
             this.bufferedThrow = 0;
+            // toque rápido = arremesso; segurando o mesmo botão = turbo (decidido no estado 'charge')
+            if (input.isHeld('throw')) {
+              this.charge = 0;
+              this.setState('charge');
+              return;
+            }
             return this.startThrow('quick');
           }
           if (this.ball === 'stolen') {
@@ -151,19 +141,33 @@ export class Player extends Actor {
         if (this.st >= (this.throwKind === 'quick' ? 9 : 14)) this.setState('idle');
         break;
       case 'charge': {
-        // segurando K: carrega o arremesso especial (anda devagar)
+        // segurando o botão de arremesso: carrega o turbo (anda devagar)
         this.vx += (ax.x * WALK * 0.45 - this.vx) * 0.3;
         this.vy += (ax.y * DEPTH * 0.45 - this.vy) * 0.3;
         if (ax.x > 0.1) this.facing = 1;
         else if (ax.x < -0.1) this.facing = -1;
-        // a carga vai até onde o poder disponível paga
-        const maxCharge = Math.max(0, Math.min(1, (this.sp - TURBO_MIN) / TURBO_PER_CHARGE));
-        this.charge = Math.min(maxCharge, this.charge + 1 / 55);
-        if (this.st % 6 === 0 && this.charge > 0.3) w.fx.hit(this.x + this.facing * 4, this.y, 92 * this.scale, false, '#ffd23f');
-        if (!input.isHeld('special') || input.wasReleased('special')) {
-          if (this.charge < 0.15) {
+        if (this.st >= HOLD_DELAY) {
+          if (this.sp < TURBO_MIN) {
+            // o turbo gasta a barra de poder: sem o mínimo, solta só o arremesso normal
+            if (this.st === HOLD_DELAY && this.noPowerT <= 0) {
+              this.noPowerT = 45;
+              w.fx.popup(this.x, this.y - 88 * this.scale, 'SEM PODER', '#9fdcff', 7);
+              audio.sfx('block');
+            }
+          } else {
+            // a carga vai até onde o poder disponível paga (barra cheia: até o SUPER)
+            const maxCharge = this.sp >= 1 ? 1 : Math.max(0, Math.min(1, (this.sp - TURBO_MIN) / TURBO_PER_CHARGE));
+            this.charge = Math.min(maxCharge, this.charge + 1 / 55);
+          }
+        }
+        if (this.st % 6 === 0 && this.charge > 0.3) w.fx.hit(this.x + this.facing * 4, this.y, 92 * this.scale, false, this.sp >= 1 && this.charge >= 1 ? '#38f6ff' : '#ffd23f');
+        if (!input.isHeld('throw') || input.wasReleased('throw')) {
+          if (this.sp >= 1 && this.charge >= 1) {
             this.charge = 0;
-            this.startThrow('quick');
+            this.startSuper(w);
+          } else if (this.charge < 0.15) {
+            this.charge = 0;
+            this.release(w, 'quick', 0);
           } else {
             const c = this.charge;
             this.charge = 0;

@@ -4,6 +4,7 @@ import { addRank, writeSave, type SaveData } from '../core/save';
 import { describe, gearStats, money, SHOP, SLOT_NAMES, type ShopItem, type Slot } from '../data/shop';
 import { STAGES } from '../data/stages';
 import { drawHeroSprite } from '../render/spriteAnim';
+import { sprites } from '../render/sprites';
 import type { Game } from '../game/game';
 
 type ScreenName = 'title' | 'howto' | 'options' | 'pause' | 'gameover' | 'victory' | 'shop' | 'backpack' | 'ranking' | 'none';
@@ -82,6 +83,8 @@ export class Screens {
 
   show(name: ScreenName, data: Record<string, string | number> = {}) {
     if (name === 'pause' || name === 'title' || name === 'gameover' || name === 'victory') this.from = name;
+    // controles de toque só durante a partida (não cobrem os menus)
+    document.body.dataset.ui = name;
     if ((name === 'gameover' || name === 'victory') && Object.keys(data).length) this.endData = data;
     this.current = name;
     const g = this.game;
@@ -91,25 +94,30 @@ export class Screens {
         this.root.innerHTML = '';
         break;
       case 'title': {
-        const btns = [this.btn('Novo Jogo', () => g.newGame(0))];
-        if (this.save.unlocked > 1) btns.push(this.btn(`Continuar · Fase ${Math.min(this.save.unlocked, STAGES.length)}`, () => g.newGame(Math.min(this.save.unlocked, STAGES.length) - 1)));
-        btns.push(
-          this.btn('Mochila', () => this.openBag('title'), true),
-          this.btn('Ranking', () => this.show('ranking'), true),
-          this.btn('Como Jogar', () => this.show('howto'), true),
-          this.btn('Opções', () => this.show('options'), true),
-        );
+        // principal(is) em cima, ocupando a largura toda; o resto numa grade 2×2
+        const main = [this.btn('Novo Jogo', () => g.newGame(0))];
+        if (this.save.unlocked > 1) main.push(this.btn(`Continuar · Fase ${Math.min(this.save.unlocked, STAGES.length)}`, () => g.newGame(Math.min(this.save.unlocked, STAGES.length) - 1)));
+        for (const b of main) b.classList.add('wide');
+        const btns = [
+          ...main,
+          this.btn('🎒 Mochila', () => this.openBag('title'), true),
+          this.btn('🏆 Ranking', () => this.show('ranking'), true),
+          this.btn('❓ Como Jogar', () => this.show('howto'), true),
+          this.btn('⚙ Opções', () => this.show('options'), true),
+        ];
         this.mount(
-          `<div class="screen">
-            <div class="title-wrap">
-              <canvas class="hero-canvas" width="360" height="440"></canvas>
-              <div>
-                <h1 class="logo"><span class="l1">STREET</span><span class="l2">BASKETBALL</span><span class="l3">FIGHT</span></h1>
-                <p class="tag">10 FASES · 10 CHEFES · 1 BOLA</p>
+          `<div class="screen title-screen">
+            <canvas class="hero-canvas" width="360" height="440"></canvas>
+            <div class="title-main">
+              <h1 class="logo"><span class="l1">STREET</span><span class="l2">BASKETBALL</span><span class="l3">FIGHT</span></h1>
+              <p class="tag">10 FASES · 10 CHEFES · 1 BOLA</p>
+              <div class="menu title-menu"></div>
+              <div class="title-stats">
+                <span>RECORDE <b>${String(this.save.best).padStart(8, '0')}</b></span>
+                <span>DINHEIRO <b class="money">${money(this.save.money)}</b></span>
+                <span>FICHAS <b>👑 ${this.save.continues}</b></span>
               </div>
             </div>
-            <div class="menu"></div>
-            <p class="tag">RECORDE ${String(this.save.best).padStart(8, '0')} · ${money(this.save.money)}</p>
           </div>`,
           btns,
         );
@@ -125,13 +133,11 @@ export class Screens {
             <div class="keys">
               <span><kbd>W A S D</kbd> <kbd>↑ ← ↓ →</kbd></span><span>Andar nas 4 direções (aproxime-se ou afaste-se do fundo)</span>
               <span><kbd>SHIFT</kbd></span><span>Correr (ou toque duas vezes na direção)</span>
-              <span><kbd>ESPAÇO</kbd></span><span>Arremesso rápido · sem bola: empurrão</span>
-              <span><kbd>J</kbd></span><span>Arremesso forte (derruba, quebra defesas)</span>
-              <span><kbd>K</kbd></span><span>Segure para carregar o arremesso turbo (gasta a barra de PODER) · com a barra cheia: SUPER ARREMESSO</span>
+              <span><kbd>ESPAÇO</kbd></span><span>Toque: arremesso rápido · segure: carrega o TURBO (gasta a barra de PODER) e solte para arremessar · com a barra cheia, carga máxima = SUPER ARREMESSO · sem bola: empurrão</span>
               <span><kbd>ESC</kbd></span><span>Pausar · Mochila (trocar os itens comprados)</span>
             </div>
             <h3>CELULAR</h3>
-            <p class="small">Analógico à esquerda · ARREMESSO, FORTE, TURBO (segure para carregar) e CORRER à direita.</p>
+            <p class="small">Analógico à esquerda · LANÇAR (toque: arremesso · segure: TURBO) e CORRER à direita.</p>
             <h3>DICAS</h3>
             <p class="small">Fique na mesma faixa do inimigo para acertar · troque de faixa para desviar · o LADRÃO rouba sua bola: empurre-o para recuperar · quebre tambores, caixas e lixeiras para achar comida, moedas, poções e a coroa (ficha de continue) · depois de cada fase, gaste seu dinheiro na LOJA.</p>
           </div><div class="menu"></div></div>`,
@@ -404,8 +410,20 @@ export class Screens {
       ctx.beginPath();
       ctx.ellipse(180, 420, 70, 14, 0, 0, Math.PI * 2);
       ctx.fill();
-      const anim = Math.floor(t / 240) % 2 ? 'celebrate' : 'idle';
-      drawHeroSprite(ctx, 180, 418, { state: anim, st: t, t, vx: 0, vy: 0, facing: 1, hasBall: true, quick: true, hp: 100 }, { scale: 4.2 / SIZE });
+      // desenho grande do herói (nítido); respira e balança de leve
+      const img = sprites.heroFull;
+      if (img) {
+        const s = 410 / img.height;
+        const breathe = Math.sin(t * 0.05);
+        ctx.save();
+        ctx.translate(180, 420);
+        ctx.rotate(Math.sin(t * 0.025) * 0.012);
+        ctx.scale(s * (1 - breathe * 0.006), s * (1 + breathe * 0.012));
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, -img.width / 2, -img.height);
+        ctx.restore();
+      } else drawHeroSprite(ctx, 180, 418, { state: 'idle', st: t, t, vx: 0, vy: 0, facing: 1, hasBall: true, quick: true, hp: 100 }, { scale: 4.2 / SIZE });
       this.heroRaf = requestAnimationFrame(frame);
     };
     frame();

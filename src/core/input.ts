@@ -1,8 +1,8 @@
-export type Action = 'up' | 'down' | 'left' | 'right' | 'throw' | 'strong' | 'special' | 'run' | 'pause' | 'confirm';
+export type Action = 'up' | 'down' | 'left' | 'right' | 'throw' | 'run' | 'pause' | 'confirm';
 
 const KEYMAP: Record<string, Action> = {
   KeyW: 'up', ArrowUp: 'up', KeyS: 'down', ArrowDown: 'down', KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right',
-  Space: 'throw', KeyJ: 'strong', KeyK: 'special', ShiftLeft: 'run', ShiftRight: 'run', Escape: 'pause', KeyP: 'pause', Enter: 'confirm',
+  Space: 'throw', ShiftLeft: 'run', ShiftRight: 'run', Escape: 'pause', KeyP: 'pause', Enter: 'confirm',
 };
 
 /** Teclado + controles de toque. `held` = segurando; `pressed` = apertou neste quadro. */

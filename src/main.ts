@@ -79,6 +79,8 @@ function frame(now: number) {
   ctx.clip();
   game.draw(ctx);
   ctx.restore();
+  // telas mais largas (celular 20:9): o cenário continua nas laterais em vez de faixas pretas
+  game.drawSides(ctx, ox / scale);
   requestAnimationFrame(frame);
 }
 

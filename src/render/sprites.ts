@@ -22,6 +22,8 @@ export const sprites = {
   props: {} as Record<string, Frame>,
   /** Arte de corpo inteiro dos chefes (art/bosses-sheet.png) */
   bosses: {} as Record<string, Frame>,
+  /** Desenho grande do herói (tela inicial) */
+  heroFull: null as HTMLImageElement | null,
   /** Prêmios (art/items-sheet.png) */
   items: {} as Record<string, Frame>,
   /** Cenários das 10 fases (art/stages-sheet.png) */
@@ -69,8 +71,9 @@ export async function loadSprites() {
     ...Object.entries(items as Record<string, FrameInfo>).map(async ([k, f]) => (sprites.items[k] = await frame('items', { ...f, base: f.h }))),
   ]);
   await Promise.all(
-    Array.from({ length: 10 }, (_, i) => loadImage(`${BASE}stages/stage_${i + 1}.png`).then((img) => (sprites.stages[i + 1] = img)).catch(() => undefined)),
+    Array.from({ length: 10 }, (_, i) => loadImage(`${BASE}stages/stage_${i + 1}.jpg`).then((img) => (sprites.stages[i + 1] = img)).catch(() => undefined)),
   );
+  sprites.heroFull = await loadImage(`${BASE}hero/hero_full.png`).catch(() => null);
   sprites.loaded = true;
 }
 

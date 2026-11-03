@@ -2,7 +2,10 @@
 export const W = 640;
 export const H = 360;
 /** Faixa do chão onde os personagens andam (profundidade): topo = fundo da rua, base = perto da câmera */
-export const FLOOR_TOP = 236;
+/** Linha do chão desenhada no cenário (pé das fachadas) */
+export const ART_FLOOR = 236;
+/** Topo da área onde se anda: 10% da tela abaixo do pé das fachadas, para ninguém passar por cima das partes fixas do cenário */
+export const FLOOR_TOP = ART_FLOOR + Math.round(H * 0.1);
 export const FLOOR_BOTTOM = 348;
 export const STEP = 1 / 60;
 /** Tamanho de personagens e objetos do cenário (1 = original; 1,2 = 20% maiores) */

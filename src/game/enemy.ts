@@ -506,7 +506,7 @@ export class Enemy extends Actor {
     const r = enemyFrame({ kind: this.kind, state: this.state, st: this.st, t: t + this.id * 13, moving, fast: Math.abs(this.vx) > 1.9, hp: this.hp });
     const f = frames[r.idx] ?? frames[0];
     const H = this.drawHeight;
-    const s = enemyScale(frames, r.idx, H);
+    const s = enemyScale(frames, r.idx, H, this.kind !== 'biker');
     // pisca antes de sumir
     const alpha = this.state === 'ko' && this.st > 25 ? (Math.floor(this.st / 3) % 2 ? 0.2 : 1) : 1;
     drawSprite(ctx, f, sx, sy, s, { facing: this.facing, flash: this.flash > 0, alpha, rot: r.rot });

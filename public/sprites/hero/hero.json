@@ -442,96 +442,96 @@
  "legs": [
   {
    "file": "legs_0.png",
-   "w": 224,
-   "h": 285,
-   "footX": 110,
-   "base": 285
+   "w": 85,
+   "h": 107,
+   "footX": 41,
+   "base": 106
   },
   {
    "file": "legs_1.png",
-   "w": 261,
-   "h": 260,
-   "footX": 130,
-   "base": 260
+   "w": 98,
+   "h": 98,
+   "footX": 48,
+   "base": 97
   },
   {
    "file": "legs_2.png",
-   "w": 267,
-   "h": 235,
-   "footX": 133,
-   "base": 235
+   "w": 101,
+   "h": 89,
+   "footX": 50,
+   "base": 88
   },
   {
    "file": "legs_3.png",
-   "w": 263,
-   "h": 252,
-   "footX": 131,
-   "base": 252
+   "w": 99,
+   "h": 95,
+   "footX": 49,
+   "base": 94
   },
   {
    "file": "legs_4.png",
-   "w": 231,
-   "h": 274,
-   "footX": 115,
-   "base": 274
+   "w": 87,
+   "h": 103,
+   "footX": 43,
+   "base": 102
   },
   {
    "file": "legs_5.png",
-   "w": 208,
-   "h": 273,
-   "footX": 103,
-   "base": 273
+   "w": 79,
+   "h": 103,
+   "footX": 39,
+   "base": 102
   }
  ],
  "spin": [
   {
    "file": "spin_0.png",
-   "w": 199,
-   "h": 350,
-   "footX": 89,
-   "base": 350
+   "w": 75,
+   "h": 131,
+   "footX": 33,
+   "base": 130
   },
   {
    "file": "spin_1.png",
-   "w": 235,
-   "h": 354,
-   "footX": 97,
-   "base": 354
+   "w": 89,
+   "h": 132,
+   "footX": 36,
+   "base": 131
   },
   {
    "file": "spin_2.png",
-   "w": 231,
-   "h": 370,
-   "footX": 121,
-   "base": 370
+   "w": 87,
+   "h": 138,
+   "footX": 45,
+   "base": 137
   },
   {
    "file": "spin_3.png",
-   "w": 250,
-   "h": 379,
-   "footX": 125,
-   "base": 379
+   "w": 94,
+   "h": 142,
+   "footX": 47,
+   "base": 141
   },
   {
    "file": "spin_4.png",
-   "w": 243,
-   "h": 378,
-   "footX": 139,
-   "base": 378
+   "w": 92,
+   "h": 141,
+   "footX": 52,
+   "base": 140
   },
   {
    "file": "spin_5.png",
-   "w": 198,
-   "h": 386,
-   "footX": 107,
-   "base": 386
+   "w": 75,
+   "h": 144,
+   "footX": 40,
+   "base": 143
   },
   {
    "file": "spin_6.png",
-   "w": 207,
-   "h": 386,
-   "footX": 114,
-   "base": 386
+   "w": 78,
+   "h": 144,
+   "footX": 43,
+   "base": 143
   }
  ]
 }
