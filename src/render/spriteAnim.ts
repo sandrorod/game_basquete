@@ -40,6 +40,8 @@ export interface HeroPoseInput {
 
 /** Duração (quadros) de um quique completo: mão → chão → mão */
 export const DRIBBLE = { idle: 30, walk: 26, run: 20 };
+/** Quadro do drible parado em que a mão ficou inteira ao tirar a bola desenhada */
+const DRIBBLE_BODY = 4;
 
 /** Bola do drible: da mão até o chão e de volta (sai da mão acelerando e volta freando) */
 function drawDribbleBall(ctx: CanvasRenderingContext2D, x: number, y: number, f: Frame, s: number, facing: number, t: number, period: number) {
@@ -90,7 +92,7 @@ function trickFrame(H: Record<string, Frame[]>, idleT: number): Frame | null {
 }
 
 /** Quadro do herói para o estado atual (folha art/hero-sheet.png; os quadros olham para a direita) */
-export function heroFrame(p: HeroPoseInput): { f: Frame; trick?: boolean; dribble?: number } {
+export function heroFrame(p: HeroPoseInput): { f: Frame; trick?: boolean; dribble?: number; bob?: boolean } {
   const H = heroSet ?? sprites.hero;
   const s = p.st;
   const at = (list: Frame[], dur: number) => list[Math.min(list.length - 1, Math.floor((s / dur) * list.length))];
@@ -132,7 +134,8 @@ export function heroFrame(p: HeroPoseInput): { f: Frame; trick?: boolean; dribbl
       const tf = p.hasBall && (p.idleT ?? 0) >= TRICK_AFTER ? trickFrame(H, p.idleT!) : null;
       if (tf) return { f: tf, trick: true };
       // parado com a bola: bate bola na frente do corpo; sem bola: parado de lado
-      if (p.hasBall) return { f: cyc(H.dribble, p.t, DRIBBLE.idle / H.dribble.length), dribble: DRIBBLE.idle };
+      // parado com a bola: um quadro só (o de mão inteira, sem a bola desenhada), a bola quica até a mão
+      if (p.hasBall) return { f: H.dribble[DRIBBLE_BODY] ?? H.dribble[0], dribble: DRIBBLE.idle, bob: true };
       return { f: H.walknb[0] };
     }
   }
@@ -147,7 +150,9 @@ export function drawHeroSprite(ctx: CanvasRenderingContext2D, x: number, y: numb
   const r = heroFrame(p);
   // os truques já foram reduzidos para a mesma resolução dos quadros do herói (tools/slice_tricks.py)
   const s = heroScale() * (o.scale ?? 1);
-  drawSprite(ctx, r.f, x, y, s, { facing: p.facing, flash: o.flash, alpha: o.alpha });
+  // parado batendo bola: o corpo abaixa 1 ponto quando a mão empurra a bola (sem trocar de quadro, sem tremer)
+  const push = r.bob && r.dribble ? Math.max(0, Math.sin(((p.t % r.dribble) / r.dribble) * Math.PI * 2)) : 0;
+  drawSprite(ctx, r.f, x, y + push * 1.2 * (o.scale ?? 1), s, { facing: p.facing, flash: o.flash, alpha: o.alpha });
   if (r.dribble && r.f.ball) drawDribbleBall(ctx, x, y, r.f, s, p.facing, p.t, r.dribble);
 }
 
